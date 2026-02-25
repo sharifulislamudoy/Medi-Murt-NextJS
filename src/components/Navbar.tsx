@@ -4,10 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // 🔐 Get the current session (user login info)
+  const { data: session, status } = useSession();
 
   // Close mobile menu on window resize above md breakpoint
   useEffect(() => {
@@ -32,21 +37,27 @@ export default function Navbar() {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+  // 🔤 Get first letter of user's name (fallback to "U" if name is missing)
+  const userInitial = session?.user?.name
+    ? session.user.name.charAt(0).toUpperCase()
+    : "U";
+
   return (
     <>
       <motion.nav
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
+        className={`sticky top-0 z-50 transition-all duration-300 ${
+          isScrolled
             ? "bg-white/95 backdrop-blur-md shadow-lg"
             : "bg-white shadow-sm"
-          }`}
+        }`}
       >
         {/* Decorative top border gradient */}
         <div className="h-1 w-full bg-gradient-to-r from-[#156A98] via-[#0F9D8F] to-[#156A98]" />
 
-        {/* First row: Hamburger + Logo, Desktop Nav, Login */}
+        {/* First row: Hamburger + Logo, Desktop Nav, Login/Avatar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             {/* Left: Hamburger (mobile) + Logo */}
@@ -83,7 +94,10 @@ export default function Navbar() {
               </motion.button>
 
               {/* Logo + Brand Name */}
-              <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
+              <Link
+                href="/"
+                className="flex items-center gap-2 flex-shrink-0 group"
+              >
                 <div className="relative">
                   <Image
                     src="/Logo.png"
@@ -108,7 +122,7 @@ export default function Navbar() {
 
             {/* Center: Desktop Navigation (hidden on mobile) */}
             <div className="hidden md:flex items-center space-x-1">
-              {["Home", "Products / Catalog", "Services", "About", "Contact"].map(
+              {["Home", "Products", "Services", "About", "Contact"].map(
                 (item, index) => (
                   <motion.div
                     key={item}
@@ -128,31 +142,101 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Right: Login Button */}
+            {/* Right: Login Button OR User Avatar Circle */}
             <div className="flex items-center gap-3">
-              <Link href={'/login'}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative group bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white px-5 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center gap-2 overflow-hidden"
-                >
-                  <span className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
-                  <svg
-                    className="h-5 w-5 relative z-10"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              {status === "loading" ? (
+                // Show a small placeholder while session loads
+                <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
+              ) : session ? (
+                // 👤 User is LOGGED IN → Show Avatar Circle with dropdown
+                <div className="relative">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-10 h-10 rounded-full bg-gradient-to-br from-[#156A98] to-[#0F9D8F] text-white font-bold text-lg flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-300"
+                    aria-label="User menu"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    {userInitial}
+                  </motion.button>
+
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                      >
+                        {/* User info at top of dropdown */}
+                        <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-[#156A98]/5 to-[#0F9D8F]/5">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            {session.user?.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {session.user?.email}
+                          </p>
+                        </div>
+
+                        {/* Dashboard link (optional — adjust href based on role) */}
+                        <Link
+                          href="/dashboard"
+                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+
+                        {/* Sign Out button */}
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            signOut({ callbackUrl: "/login" }); // redirect to login after logout
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors duration-200"
+                        >
+                          Sign Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Click outside to close dropdown */}
+                  {isDropdownOpen && (
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsDropdownOpen(false)}
                     />
-                  </svg>
-                  <span className="relative z-10">Login</span>
-                </motion.button>
-              </Link>
+                  )}
+                </div>
+              ) : (
+                // 🔒 User is NOT logged in → Show Login Button
+                <Link href="/login">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative group bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white px-5 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center gap-2 overflow-hidden"
+                  >
+                    <span className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                    <svg
+                      className="h-5 w-5 relative z-10"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    <span className="relative z-10">Login</span>
+                  </motion.button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -184,13 +268,12 @@ export default function Navbar() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              {/* Decorative search bar glow */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#156A98]/20 to-[#0F9D8F]/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300 -z-10" />
             </motion.div>
           </div>
         </div>
 
-        {/* Mobile Menu with only navigation links */}
+        {/* Mobile Menu */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -201,7 +284,7 @@ export default function Navbar() {
               className="md:hidden overflow-hidden bg-white/95 backdrop-blur-md border-t border-gray-100"
             >
               <div className="px-4 py-4 space-y-2">
-                {["Home", "Products / Catalog", "Services", "About", "Contact"].map(
+                {["Home", "Products", "Services", "About", "Contact"].map(
                   (item, index) => (
                     <motion.div
                       key={item}
