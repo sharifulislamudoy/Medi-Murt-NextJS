@@ -10,6 +10,7 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 🔐 Get the current session (user login info)
   const { data: session, status } = useSession();
@@ -17,7 +18,9 @@ export default function Navbar() {
   // Close mobile menu on window resize above md breakpoint
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
         setIsMenuOpen(false);
       }
     };
@@ -26,6 +29,7 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 10);
     };
 
+    handleResize(); // set initial value
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleScroll);
 
@@ -41,6 +45,14 @@ export default function Navbar() {
   const userInitial = session?.user?.name
     ? session.user.name.charAt(0).toUpperCase()
     : "U";
+
+  // Navigation items for logged-in users (used in desktop dropdown and mobile bottom nav)
+  const loggedInNavItems = [
+    { name: "Favourite", href: "/favourite", icon: "❤️" }, // Using emoji for simplicity, replace with actual SVGs
+    { name: "Bag", href: "/bag", icon: "🛒" },
+    { name: "History", href: "/history", icon: "📜" },
+    { name: "Alert", href: "/alert", icon: "🔔" },
+  ];
 
   return (
     <>
@@ -180,20 +192,47 @@ export default function Navbar() {
                           </p>
                         </div>
 
-                        {/* Dashboard link (optional — adjust href based on role) */}
-                        <Link
-                          href="/dashboard"
-                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Dashboard
-                        </Link>
+                        {/* Conditionally render items based on screen size */}
+                        {!isMobile ? (
+                          // Desktop: Show all logged-in nav items + Dashboard + Sign Out
+                          <>
+                            {loggedInNavItems.map((item) => (
+                              <Link
+                                key={item.name}
+                                href={item.href}
+                                className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                                onClick={() => setIsDropdownOpen(false)}
+                              >
+                                <span className="mr-2">{item.icon}</span>
+                                {item.name}
+                              </Link>
+                            ))}
+                            <Link
+                              href="/dashboard"
+                              className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                              onClick={() => setIsDropdownOpen(false)}
+                            >
+                              Dashboard
+                            </Link>
+                          </>
+                        ) : (
+                          // Mobile: Show only Dashboard + Sign Out
+                          <>
+                            <Link
+                              href="/dashboard"
+                              className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                              onClick={() => setIsDropdownOpen(false)}
+                            >
+                              Dashboard
+                            </Link>
+                          </>
+                        )}
 
-                        {/* Sign Out button */}
+                        {/* Sign Out button (common for both) */}
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false);
-                            signOut({ callbackUrl: "/login" }); // redirect to login after logout
+                            signOut({ callbackUrl: "/login" });
                           }}
                           className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors duration-200"
                         >
@@ -248,7 +287,7 @@ export default function Navbar() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="relative w-full md:w-1/2 lg:w-2/5 group"
+              className="relative w-full"
             >
               <input
                 type="text"
@@ -273,7 +312,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu (Hamburger) */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -320,6 +359,42 @@ export default function Navbar() {
           />
         )}
       </AnimatePresence>
+
+      {/* Bottom Navigation for Mobile (visible only when logged in) */}
+      {session && isMobile && (
+        <motion.div
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 md:hidden"
+        >
+          <div className="flex justify-around items-center py-2">
+            {/* Home */}
+            <Link
+              href="/"
+              className="flex flex-col items-center p-2 text-gray-600 hover:text-[#0F9D8F] transition-colors"
+            >
+              <span className="text-xl">🏠</span>
+              <span className="text-xs mt-1">Home</span>
+            </Link>
+
+            {/* Logged-in nav items */}
+            {loggedInNavItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="flex flex-col items-center p-2 text-gray-600 hover:text-[#0F9D8F] transition-colors"
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-xs mt-1">{item.name}</span>
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Spacer for bottom nav to prevent content overlap (optional, can be moved to layout) */}
+      {session && isMobile && <div className="h-16" />}
     </>
   );
 }
