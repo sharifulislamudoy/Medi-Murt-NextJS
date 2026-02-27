@@ -56,20 +56,40 @@ export const authOptions: NextAuthOptions = {
 
     callbacks: {
         async jwt({ token, user }) {
+            // First time login → attach id & role
             if (user) {
                 token.role = user.role;
                 token.id = user.id;
             }
+
+            // 🔥 ALWAYS re-check status from DB
+            if (token.id) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.id as string },
+                    select: { status: true },
+                });
+
+                // If user no longer approved → invalidate token
+                if (!dbUser || dbUser.status !== "APPROVED") {
+                    return {}; // This clears the token
+                }
+            }
+
             return token;
         },
 
         async session({ session, token }) {
+            if (!token?.id) {
+                return null as any; // Session becomes null
+            }
+
             if (session.user) {
                 session.user.role = token.role as any;
-                session.user.id = token.sub as string;
+                session.user.id = token.id as string;
             }
+
             return session;
-        },
+        }
     },
 
     pages: {
