@@ -41,3 +41,13 @@ model User {
   createdAt DateTime   @default(now())
 }
 
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  imageUrl    String
+  category    String   // "ANNOUNCEMENT" | "PRODUCT"
+  hyperlink   String?
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

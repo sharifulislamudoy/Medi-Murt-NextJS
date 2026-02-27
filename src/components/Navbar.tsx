@@ -402,8 +402,6 @@ export default function Navbar() {
         </motion.div>
       )}
 
-      {/* Spacer for bottom nav to prevent content overlap (optional, can be moved to layout) */}
-      {session && isMobile && <div className="h-16" />}
     </>
   );
 }
