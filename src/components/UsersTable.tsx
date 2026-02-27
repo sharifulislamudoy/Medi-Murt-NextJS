@@ -20,21 +20,68 @@ type Props = {
   users: User[];
 };
 
-const TABS: { label: string; status: User["status"] | null }[] = [
-  { label: "All", status: null },
-  { label: "Approved", status: "APPROVED" },
-  { label: "Pending", status: "PENDING" },
-  { label: "Rejected", status: "REJECTED" },
-  { label: "Suspended", status: "SUSPENDED" },
+// Define a union type for filter values
+type FilterValue =
+  | { type: "status"; value: User["status"] }
+  | { type: "role"; value: User["role"] }
+  | null; // null represents "All"
+
+
+type TabItem =
+  | {
+    label: string;
+    filter: FilterValue;
+    isSeparator?: false;
+  }
+  | {
+    isSeparator: true;
+    label?: string;
+    filter?: null;
+  };
+// Tab configuration – each tab has a label and a corresponding filter value
+const TABS: TabItem[] = [
+  { label: "All", filter: null },
+
+  // Status tabs
+  { label: "Approved", filter: { type: "status", value: "APPROVED" } },
+  { label: "Pending", filter: { type: "status", value: "PENDING" } },
+  { label: "Rejected", filter: { type: "status", value: "REJECTED" } },
+  { label: "Suspended", filter: { type: "status", value: "SUSPENDED" } },
+
+  // Separator
+  { isSeparator: true },
+
+  // Role tabs
+  { label: "Shop Owner", filter: { type: "role", value: "SHOP_OWNER" } },
+  { label: "Delivery Boy", filter: { type: "role", value: "DELIVERY_BOY" } },
+  { label: "Supplier", filter: { type: "role", value: "SUPPLIER" } },
+  { label: "Admin", filter: { type: "role", value: "ADMIN" } },
 ];
 
-export default function UsersTable({ users }: Props) {
-  const [activeTab, setActiveTab] = useState<User["status"] | null>(null);
 
-  const filteredUsers =
-    activeTab === null
-      ? users
-      : users.filter((user) => user.status === activeTab);
+
+export default function UsersTable({ users }: Props) {
+  const [currentFilter, setCurrentFilter] = useState<FilterValue>(null);
+
+  // Filter users based on current filter
+  const filteredUsers = users.filter((user) => {
+    if (currentFilter === null) return true;
+    if (currentFilter.type === "status") {
+      return user.status === currentFilter.value;
+    } else {
+      return user.role === currentFilter.value;
+    }
+  });
+
+  // Helper to get count for a tab
+  const getCount = (filter: FilterValue) => {
+    if (filter === null) return users.length;
+    if (filter.type === "status") {
+      return users.filter((u) => u.status === filter.value).length;
+    } else {
+      return users.filter((u) => u.role === filter.value).length;
+    }
+  };
 
   const statusBadge: Record<User["status"], string> = {
     APPROVED: "bg-green-100 text-green-800",
@@ -52,33 +99,43 @@ export default function UsersTable({ users }: Props) {
 
   return (
     <div>
-      {/* ===== TABS ===== */}
-      <div className="flex gap-1 mb-6 bg-white rounded-xl shadow p-1 w-fit flex-wrap">
-        {TABS.map((tab) => {
-          const count =
-            tab.status === null
-              ? users.length
-              : users.filter((u) => u.status === tab.status).length;
+      {/* ===== COMBINED TABS (Status + Role) ===== */}
+      <div className="flex gap-1 mb-6 bg-white rounded-xl shadow p-1 w-fit flex-wrap items-center">
+        {TABS.map((tab, index) => {
+          // Special handling for separator
+          if (tab.isSeparator) {
+            return (
+              <span
+                key={`sep-${index}`}
+                className="w-px h-6 bg-gray-300 mx-2"
+                aria-hidden="true"
+              />
+            );
+          }
 
-          const isActive = activeTab === tab.status;
+          const count = getCount(tab.filter);
+          const isActive =
+            tab.filter === null
+              ? currentFilter === null
+              : currentFilter !== null &&
+              currentFilter.type === tab.filter.type &&
+              currentFilter.value === tab.filter.value;
 
           return (
             <button
               key={tab.label}
-              onClick={() => setActiveTab(tab.status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                isActive
-                  ? "bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white shadow"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              onClick={() => setCurrentFilter(tab.filter)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isActive
+                ? "bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white shadow"
+                : "text-gray-600 hover:bg-gray-100"
+                }`}
             >
               {tab.label}
               <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-100 text-gray-500"
-                }`}
+                className={`text-xs px-2 py-0.5 hidden 2xl:flex rounded-full ${isActive
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-gray-500"
+                  }`}
               >
                 {count}
               </span>
@@ -107,7 +164,7 @@ export default function UsersTable({ users }: Props) {
             No users found
           </h3>
           <p className="mt-1 text-gray-500">
-            There are no users with this status.
+            Try selecting a different filter.
           </p>
         </div>
       ) : (
@@ -126,13 +183,12 @@ export default function UsersTable({ users }: Props) {
                     "Role",
                     "Status",
                     "Registered",
-                    "Actions", // 👈 new column
+                    "Actions",
                   ].map((heading) => (
                     <th
                       key={heading}
-                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap ${
-                        heading === "Actions" ? "text-right" : "text-left"
-                      }`}
+                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap ${heading === "Actions" ? "text-right" : "text-left"
+                        }`}
                     >
                       {heading}
                     </th>
@@ -212,11 +268,7 @@ export default function UsersTable({ users }: Props) {
                       </div>
                     </td>
 
-                    {/* 
-                      ===== ACTION BUTTON =====
-                      Pass the user's id and current status.
-                      The component figures out which actions to show.
-                    */}
+                    {/* Action Button */}
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <StatusActionButton
                         userId={user.id}

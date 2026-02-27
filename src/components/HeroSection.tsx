@@ -37,12 +37,12 @@ export default function HeroSection() {
       >
         {ads.map((ad) => (
           <SwiperSlide key={ad.id}>
-            <div className="relative w-full h-[200px] md:h-[300px] lg:h-[400px]">
+            <div className="relative w-full h-[200px] md:h-[300px] lg:h-[450px] 2xl:h-[700px]">
               <Image
                 src={ad.imageUrl}
                 alt={ad.title}
                 fill
-                className="object-cover object-top"
+                className="object-cover object-center"
                 priority
               />
               <div className="absolute inset-0 bg-black/5 flex flex-col justify-end p-4 md:p-8">

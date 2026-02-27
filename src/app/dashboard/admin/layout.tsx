@@ -27,9 +27,11 @@ export default function AdminLayout({
         {/* Sidebar - full width on mobile, 1/4 on desktop */}
         <aside className="w-full md:w-1/4 bg-white shadow-lg md:min-h-screen p-4 md:p-6">
           <div className="mb-6 md:mb-8">
-            <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent">
-              Admin
-            </h2>
+            <Link href={'/'}>
+              <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent">
+                Admin
+              </h2>
+            </Link>
             <p className="text-xs md:text-sm text-gray-500 mt-1">
               Manage your platform
             </p>
@@ -46,11 +48,10 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex-shrink-0 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    isActive
+                  className={`flex-shrink-0 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                       ? "bg-gradient-to-r from-[#156A98]/10 to-[#0F9D8F]/10 text-[#156A98] font-medium border-l-4 md:border-l-4 border-l-0 md:border-l-4 border-b-2 md:border-b-0 border-[#0F9D8F]"
                       : "text-gray-600 hover:bg-gray-100 hover:text-[#0F9D8F]"
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Link>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,16 +23,32 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    const toastId = toast.loading("Creating account...");
 
-    setIsLoading(false);
-    router.push("/login");
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+
+      toast.success("Account created successfully! Please log in.", {
+        id: toastId,
+      });
+      router.push("/login");
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong", { id: toastId });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +76,7 @@ export default function RegisterPage() {
               transition={{ delay: 0.1 }}
               className="inline-flex items-center gap-2"
             >
-              <div className="w-11 h-11  flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <div>
                   <img src="/Logo.png" alt="" />
                 </div>
@@ -226,8 +243,9 @@ export default function RegisterPage() {
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`relative w-full bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white py-3 rounded-lg font-medium overflow-hidden group ${isLoading ? "opacity-80 cursor-not-allowed" : ""
-                }`}
+              className={`relative w-full bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white py-3 rounded-lg font-medium overflow-hidden group ${
+                isLoading ? "opacity-80 cursor-not-allowed" : ""
+              }`}
             >
               <span className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
               <span className="relative z-10 flex items-center justify-center gap-2">

@@ -70,19 +70,20 @@ export default function Navbar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
+        className={`sticky top-0 z-50 transition-all duration-300 ${
+          isScrolled
             ? "bg-white/95 backdrop-blur-md shadow-lg"
             : "bg-white shadow-sm"
-          }`}
+        }`}
       >
         {/* Decorative top border gradient */}
         <div className="h-1 w-full bg-gradient-to-r from-[#156A98] via-[#0F9D8F] to-[#156A98]" />
 
-        {/* First row: Hamburger + Logo, Desktop Nav, Login/Avatar */}
+        {/* First row: Logo, Desktop Nav, Search (md+), Login/Avatar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             {/* Left: Hamburger (mobile) + Logo */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Hamburger Menu Button (visible only on mobile) */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -141,30 +142,55 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Center: Desktop Navigation (hidden on mobile) */}
-            <div className="hidden md:flex items-center space-x-1">
-              {["Home", "Products", "Services", "About", "Contact"].map(
-                (item, index) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Link
-                      href={`/${item.toLowerCase().replace(/\s+/g, "")}`}
-                      className="relative group px-3 py-2 rounded-lg text-gray-700 font-medium hover:text-[#0F9D8F] transition-all duration-200"
+            {/* Center: Desktop Navigation + Search (md+) */}
+            <div className="hidden md:flex items-center flex-1 justify-center gap-4">
+              {/* Desktop Navigation Links */}
+              <div className="flex items-center space-x-1">
+                {["Home", "Products", "Services", "About", "Contact"].map(
+                  (item, index) => (
+                    <motion.div
+                      key={item}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
                     >
-                      <span>{item}</span>
-                      <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                    </Link>
-                  </motion.div>
-                )
-              )}
+                      <Link
+                        href={`/${item.toLowerCase().replace(/\s+/g, "")}`}
+                        className="relative group px-3 py-2 rounded-lg text-gray-700 font-medium hover:text-[#0F9D8F] transition-all duration-200"
+                      >
+                        <span>{item}</span>
+                        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                      </Link>
+                    </motion.div>
+                  )
+                )}
+              </div>
+
+              {/* Search Bar for md+ */}
+              <div className="relative max-w-xs w-full">
+                <input
+                  type="text"
+                  placeholder="Search medicines..."
+                  className="w-full text-black border border-gray-200 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-300"
+                />
+                <svg
+                  className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
             </div>
 
             {/* Right: Login Button OR User Avatar Circle */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {status === "loading" ? (
                 // Show a small placeholder while session loads
                 <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
@@ -289,8 +315,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Second row: Search bar (always visible) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3 md:pb-4">
+        {/* Second row: Search bar (only visible on mobile) */}
+        <div className="block md:hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
           <div className="flex justify-center">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -401,7 +427,6 @@ export default function Navbar() {
           </div>
         </motion.div>
       )}
-
     </>
   );
 }
