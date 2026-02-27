@@ -15,6 +15,16 @@ export default function Navbar() {
   // 🔐 Get the current session (user login info)
   const { data: session, status } = useSession();
 
+  const roleRouteMap: Record<string, string> = {
+    ADMIN: "/dashboard/admin",
+    SHOP_OWNER: "/dashboard/shop-owner",
+    DELIVERY_BOY: "/dashboard/delivery-boy",
+    SUPPLIER: "/dashboard/supplier",
+  };
+
+  const dashboardRoute =
+    roleRouteMap[session?.user?.role as string] || "/dashboard";
+
   // Close mobile menu on window resize above md breakpoint
   useEffect(() => {
     const handleResize = () => {
@@ -60,11 +70,10 @@ export default function Navbar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          isScrolled
+        className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
             ? "bg-white/95 backdrop-blur-md shadow-lg"
             : "bg-white shadow-sm"
-        }`}
+          }`}
       >
         {/* Decorative top border gradient */}
         <div className="h-1 w-full bg-gradient-to-r from-[#156A98] via-[#0F9D8F] to-[#156A98]" />
@@ -208,7 +217,7 @@ export default function Navbar() {
                               </Link>
                             ))}
                             <Link
-                              href="/dashboard"
+                              href={dashboardRoute}
                               className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
                               onClick={() => setIsDropdownOpen(false)}
                             >
@@ -219,7 +228,7 @@ export default function Navbar() {
                           // Mobile: Show only Dashboard + Sign Out
                           <>
                             <Link
-                              href="/dashboard"
+                              href={dashboardRoute}
                               className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
                               onClick={() => setIsDropdownOpen(false)}
                             >
