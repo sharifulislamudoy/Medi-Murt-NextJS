@@ -32,7 +32,7 @@ export const authOptions: NextAuthOptions = {
 
                 // ❌ Prevent login if not approved
                 if (user.status !== "APPROVED") {
-                    throw new Error("Your account is not approved by admin");
+                    throw new Error("ACCOUNT_NOT_APPROVED");
                 }
 
                 const isValid = await bcrypt.compare(
@@ -94,6 +94,7 @@ export const authOptions: NextAuthOptions = {
 
     pages: {
         signIn: "/login",
+        error: "/auth-error",
     },
 
     secret: process.env.NEXTAUTH_SECRET,
