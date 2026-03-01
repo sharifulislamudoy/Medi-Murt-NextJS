@@ -28,6 +28,18 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum ProductCategory {
+  MEDICINE
+  SURGICAL
+  OTC
+  HERBAL
+  DIABETES_CARE
+  CARDIAC
+  INJECTABLE
+  MEDI_DEVICE
+  OTHER
+}
+
 model User {
   id        String     @id @default(cuid())
   name      String
@@ -60,4 +72,39 @@ model PromotionModal {
   isVisible Boolean  @default(false) // default false
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Generic {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  products  Product[]
+  createdAt DateTime @default(now())
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  products  Product[]
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  name        String
+  category    ProductCategory
+  sku         String         @unique
+  mrp         Float
+  genericId   String?
+  generic     Generic?       @relation(fields: [genericId], references: [id])
+  brandId     String?
+  brand       Brand?         @relation(fields: [brandId], references: [id])
+  image       String
+  description String         @db.Text
+  sellPrice   Float
+  costPrice   Float
+  stock       Int
+  status      Boolean        @default(true)    // true = show in public, false = hide
+  availability Boolean       @default(true)    // true = in stock, false = out of stock
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 }

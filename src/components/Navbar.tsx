@@ -146,7 +146,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center flex-1 justify-center gap-4">
               {/* Desktop Navigation Links */}
               <div className="flex items-center space-x-1">
-                {["Home", "Products", "Services", "About", "Contact"].map(
+                {["Products", "Services", "About", "Contact"].map(
                   (item, index) => (
                     <motion.div
                       key={item}
