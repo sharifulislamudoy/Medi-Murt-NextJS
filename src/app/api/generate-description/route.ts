@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+
 export async function POST(req: Request) {
   try {
     const { name, category } = await req.json();
@@ -14,9 +15,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const prompt = `Generate a short, informative description for a medicine/product called "${name}" in the category "${category}". Include its common uses and typical dosage information for different age groups (adults, children, elderly) if applicable. 
-    
-**Important:** Output only the description text itself. Do **not** include any introductory phrases like "Here is a short description" or repeat the product name. Just provide the description. Keep it concise, professional, and under 100 words.`;
+    const prompt = `Generate an extremely short, one‑sentence description for the medicine "${name}" (category: ${category}). 
+Include only its primary use and a very brief dosage note (if needed). 
+**Maximum 30 words.** Do not use any introductory phrases.`;
 
     const response = await fetch(GROQ_API_URL, {
       method: "POST",
@@ -25,19 +26,19 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct", // or another current model
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
         messages: [
           {
             role: "system",
-            content: "You are a helpful medical assistant that provides accurate and concise product descriptions. You always output only the description text without any additional commentary.",
+            content: "You are a concise medical assistant. Always reply with only the description text, no extra words.",
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 150,
+        temperature: 0.3,       // lower = more focused
+        max_tokens: 60,          // limits length
       }),
     });
 
@@ -53,9 +54,8 @@ export async function POST(req: Request) {
     const data = await response.json();
     let description = data.choices[0]?.message?.content?.trim() || "";
 
-    // Optional: Additional cleanup to remove any accidental prefixed text
-    // This regex removes common introductory phrases if they appear
-    description = description.replace(/^(Here('s| is) a (short )?description (for|of) .*?:\s*)/i, '').trim();
+    // Optional: remove any accidental lead‑in
+    description = description.replace(/^(Here('s| is) .*?:\s*)/i, '').trim();
 
     return NextResponse.json({ description });
   } catch (error) {
