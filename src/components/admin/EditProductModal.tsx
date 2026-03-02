@@ -1,4 +1,3 @@
-// components/admin/EditProductModal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,6 +5,7 @@ import { motion } from "framer-motion";
 import Modal from "@/components/ui/Modal";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { Sparkles } from "lucide-react";
 
 const cloudName = "dohhfubsa";
 const uploadPreset = "react_unsigned";
@@ -59,6 +59,7 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [genericSuggestions, setGenericSuggestions] = useState<string[]>([]);
   const [brandSuggestions, setBrandSuggestions] = useState<string[]>([]);
 
@@ -97,6 +98,34 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
     const data = await res.json();
     setUploading(false);
     return data.secure_url;
+  };
+
+  const generateDescription = async () => {
+    if (!form.name || !form.category) {
+      toast.error("Please enter product name and category first");
+      return;
+    }
+
+    setGenerating(true);
+    const toastId = toast.loading("Generating description...");
+
+    try {
+      const res = await fetch("/api/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, category: form.category }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate");
+
+      const data = await res.json();
+      setForm(prev => ({ ...prev, description: data.description }));
+      toast.success("Description generated", { id: toastId });
+    } catch (error) {
+      toast.error("Failed to generate description", { id: toastId });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,7 +175,7 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Product</h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Same fields as create */}
+          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
             <input
@@ -154,18 +183,19 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
             <select
               name="category"
               value={form.category}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             >
               {categories.map(cat => (
@@ -174,6 +204,7 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
             </select>
           </div>
 
+          {/* MRP */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">MRP *</label>
             <input
@@ -182,11 +213,12 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               name="mrp"
               value={form.mrp}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Generic */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Generic</label>
             <input
@@ -195,13 +227,14 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               value={form.genericName}
               onChange={handleChange}
               list="generic-suggestions"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
             />
             <datalist id="generic-suggestions">
               {genericSuggestions.map(g => <option key={g} value={g} />)}
             </datalist>
           </div>
 
+          {/* Brand */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
             <input
@@ -210,13 +243,14 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               value={form.brandName}
               onChange={handleChange}
               list="brand-suggestions"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
             />
             <datalist id="brand-suggestions">
               {brandSuggestions.map(b => <option key={b} value={b} />)}
             </datalist>
           </div>
 
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Image *</label>
             <input
@@ -240,18 +274,31 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
             )}
           </div>
 
+          {/* Description with Generate Button */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">Description *</label>
+              <button
+                type="button"
+                onClick={generateDescription}
+                disabled={generating || !form.name}
+                className="flex items-center gap-1 text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {generating ? "Generating..." : "Generate with AI"}
+              </button>
+            </div>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Sell Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Sell Price *</label>
             <input
@@ -260,11 +307,12 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               name="sellPrice"
               value={form.sellPrice}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Cost Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cost Price *</label>
             <input
@@ -273,11 +321,12 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               name="costPrice"
               value={form.costPrice}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Stock */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
             <input
@@ -286,16 +335,17 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
               name="stock"
               value={form.stock}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
               required
             />
           </div>
 
+          {/* Submit */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            disabled={loading || uploading}
+            disabled={loading || uploading || generating}
             className="w-full bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white py-3 rounded-lg font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Updating..." : "Update Product"}

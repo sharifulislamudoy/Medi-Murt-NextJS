@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Eye, LayoutGrid, Table, ShoppingCart } from "lucide-react";
+import Link from "next/link";
+import { Eye, LayoutGrid, Table, ShoppingCart, Minus, Plus, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import ProductDetailsModal from "@/components/products/ProductDetailsModal";
-import QuantityModal from "@/components/products/QuantityModal";
+
 
 interface Product {
     id: string;
@@ -30,11 +30,11 @@ export default function ProductsPage() {
     const [filtered, setFiltered] = useState<Product[]>([]);
     const [search, setSearch] = useState("");
     const [viewMode, setViewMode] = useState<ViewMode>("card");
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [isQuantityOpen, setIsQuantityOpen] = useState(false);
-    const [productToAdd, setProductToAdd] = useState<Product | null>(null);
     const { addItem } = useCart();
+
+    // Inline quantity selector state
+    const [addingProductId, setAddingProductId] = useState<string | null>(null);
+    const [tempQuantity, setTempQuantity] = useState(1);
 
     // Load products
     useEffect(() => {
@@ -72,17 +72,23 @@ export default function ProductsPage() {
         );
     }, [search, products]);
 
-    const handleAddToCart = (product: Product) => {
-        setProductToAdd(product);
-        setIsQuantityOpen(true);
+    const handleAddClick = (product: Product) => {
+        setAddingProductId(product.id);
+        setTempQuantity(1);
     };
 
-    const handleQuantityConfirm = (quantity: number) => {
-        if (productToAdd) {
-            addItem(productToAdd, quantity);
-            setIsQuantityOpen(false);
-            setProductToAdd(null);
-        }
+    const handleConfirmAdd = (product: Product) => {
+        addItem(product, tempQuantity);
+        setAddingProductId(null);
+    };
+
+    const handleCancelAdd = () => {
+        setAddingProductId(null);
+    };
+
+    const calculateDiscount = (mrp: number, sellPrice: number) => {
+        if (mrp <= 0) return 0;
+        return Math.round(((mrp - sellPrice) / mrp) * 100);
     };
 
     const rowVariants = {
@@ -135,64 +141,113 @@ export default function ProductsPage() {
                 /* ---------- CARD VIEW ---------- */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <AnimatePresence>
-                        {filtered.map((product, i) => (
-                            <motion.div
-                                key={product.id}
-                                custom={i}
-                                variants={rowVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                layout
-                                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
-                            >
-                                <div className="relative h-48 w-full">
-                                    <Image
-                                        src={product.image}
-                                        alt={product.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="font-semibold text-lg text-gray-800 line-clamp-1">{product.name}</h3>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        {product.generic?.name} {product.brand?.name && `| ${product.brand.name}`}
-                                    </p>
-                                    <div className="flex items-center justify-between mt-3">
-                                        <span className="text-xl font-bold text-[#0F9D8F]">৳{product.sellPrice}</span>
-                                        <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
-                                            {product.availability ? 'In Stock' : 'Out of Stock'}
-                                        </span>
+                        {filtered.map((product, i) => {
+                            const discount = calculateDiscount(product.mrp, product.sellPrice);
+                            const isAdding = addingProductId === product.id;
+
+                            return (
+                                <motion.div
+                                    key={product.id}
+                                    custom={i}
+                                    variants={rowVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    layout
+                                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
+                                >
+                                    <Link href={`/products/${product.id}`} className="relative block h-48 w-full group">
+                                        <div className="relative h-48 w-full">
+                                            <Image
+                                                src={product.image}
+                                                alt={product.name}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                            {discount > 0 && (
+                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                    {discount}% OFF
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Link>
+                                    <div className="p-4">
+                                        <Link href={`/products/${product.id}`}>
+                                            <h3 className="font-semibold text-lg text-gray-800 line-clamp-1 hover:text-[#0F9D8F]">
+                                                {product.name}
+                                            </h3>
+                                        </Link>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {product.generic?.name} {product.brand?.name && `| ${product.brand.name}`}
+                                        </p>
+                                        <div className="flex items-center justify-between mt-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl font-bold text-[#0F9D8F]">৳{product.sellPrice}</span>
+                                                {product.mrp > product.sellPrice && (
+                                                    <span className="text-sm text-gray-400 line-through">৳{product.mrp}</span>
+                                                )}
+                                            </div>
+                                            <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
+                                                {product.availability ? 'In Stock' : 'Out of Stock'}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2 mt-4">
+                                            <Link
+                                                href={`/products/${product.id}`}
+                                                className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+                                            >
+                                                <Eye size={18} /> Details
+                                            </Link>
+                                            {isAdding ? (
+                                                <div className="flex-1 flex items-center gap-1 bg-gray-100 rounded-lg">
+                                                    <button
+                                                        onClick={() => setTempQuantity(prev => Math.max(prev - 1, 1))}
+                                                        className="p-2 text-gray-600 hover:text-[#0F9D8F]"
+                                                        disabled={tempQuantity <= 1}
+                                                    >
+                                                        <Minus size={18} />
+                                                    </button>
+                                                    <span className="w-8 text-center font-medium">{tempQuantity}</span>
+                                                    <button
+                                                        onClick={() => setTempQuantity(prev => prev + 1)}
+                                                        className="p-2 text-gray-600 hover:text-[#0F9D8F]"
+                                                    >
+                                                        <Plus size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleConfirmAdd(product)}
+                                                        className="p-2 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-r-lg hover:opacity-90"
+                                                    >
+                                                        <Check size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCancelAdd}
+                                                        className="p-2 text-gray-500 hover:text-gray-700"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleAddClick(product)}
+                                                    className="flex-1 flex items-center justify-center gap-1 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white py-2 rounded-lg hover:opacity-90"
+                                                >
+                                                    <ShoppingCart size={18} /> Add
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2 mt-4">
-                                        <button
-                                            onClick={() => {
-                                                setSelectedProduct(product);
-                                                setIsDetailsOpen(true);
-                                            }}
-                                            className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
-                                        >
-                                            <Eye size={18} /> Details
-                                        </button>
-                                        <button
-                                            onClick={() => handleAddToCart(product)}
-                                            className="flex-1 flex items-center justify-center gap-1 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white py-2 rounded-lg hover:opacity-90"
-                                        >
-                                            <ShoppingCart size={18} /> Add
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </AnimatePresence>
                 </div>
             ) : (
                 /* ---------- TABLE VIEW ---------- */
                 <>
-                    {/* Desktop Table (7 columns) - hidden on small screens */}
+                    {/* Desktop Table */}
                     <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
-                        <table className="w-full min-w-[800px]">
+                        <table className="w-full min-w-[900px]">
                             <thead className="bg-gray-50 border-b">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Image</th>
@@ -206,52 +261,94 @@ export default function ProductsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 <AnimatePresence>
-                                    {filtered.map((product, i) => (
-                                        <motion.tr
-                                            key={product.id}
-                                            custom={i}
-                                            variants={rowVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            exit={{ opacity: 0, x: -20 }}
-                                            layout
-                                            className="hover:bg-gray-50"
-                                        >
-                                            <td className="px-6 py-4">
-                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                                                    <Image src={product.image} alt={product.name} fill className="object-cover" />
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{product.generic?.name || '-'}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{product.brand?.name || '-'}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">৳{product.sellPrice}</td>
-                                            <td className="px-6 py-4 text-sm">
-                                                <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
-                                                    {product.availability ? 'In Stock' : 'Out of Stock'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex space-x-3">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedProduct(product);
-                                                            setIsDetailsOpen(true);
-                                                        }}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleAddToCart(product)}
-                                                        className="text-green-600 hover:text-green-800"
-                                                    >
-                                                        <ShoppingCart size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </motion.tr>
-                                    ))}
+                                    {filtered.map((product, i) => {
+                                        const discount = calculateDiscount(product.mrp, product.sellPrice);
+                                        const isAdding = addingProductId === product.id;
+                                        return (
+                                            <motion.tr
+                                                key={product.id}
+                                                custom={i}
+                                                variants={rowVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                exit={{ opacity: 0, x: -20 }}
+                                                layout
+                                                className="hover:bg-gray-50"
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                                                        <Image src={product.image} alt={product.name} fill className="object-cover" />
+                                                        {discount > 0 && (
+                                                            <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] px-1 rounded-br-lg">
+                                                                {discount}%
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">{product.generic?.name || '-'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">{product.brand?.name || '-'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    <span className="font-semibold text-[#0F9D8F]">৳{product.sellPrice}</span>
+                                                    {product.mrp > product.sellPrice && (
+                                                        <span className="ml-2 text-xs text-gray-400 line-through">৳{product.mrp}</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm">
+                                                    <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {product.availability ? 'In Stock' : 'Out of Stock'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex space-x-3 items-center">
+                                                        <Link
+                                                            href={`/products/${product.id}`}
+                                                            className="text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </Link>
+                                                        {isAdding ? (
+                                                            <div className="flex items-center gap-1 bg-gray-100 rounded-lg">
+                                                                <button
+                                                                    onClick={() => setTempQuantity(prev => Math.max(prev - 1, 1))}
+                                                                    className="p-1 text-gray-600 hover:text-[#0F9D8F]"
+                                                                    disabled={tempQuantity <= 1}
+                                                                >
+                                                                    <Minus size={16} />
+                                                                </button>
+                                                                <span className="w-6 text-center text-sm">{tempQuantity}</span>
+                                                                <button
+                                                                    onClick={() => setTempQuantity(prev => prev + 1)}
+                                                                    className="p-1 text-gray-600 hover:text-[#0F9D8F]"
+                                                                >
+                                                                    <Plus size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleConfirmAdd(product)}
+                                                                    className="p-1 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-r-lg"
+                                                                >
+                                                                    <Check size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleCancelAdd}
+                                                                    className="p-1 text-gray-500 hover:text-gray-700"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleAddClick(product)}
+                                                                className="text-green-600 hover:text-green-800"
+                                                            >
+                                                                <ShoppingCart size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </motion.tr>
+                                        );
+                                    })}
                                 </AnimatePresence>
                             </tbody>
                         </table>
@@ -260,7 +357,7 @@ export default function ProductsPage() {
                         )}
                     </div>
 
-                    {/* Mobile Table (3 columns: Image, Info, Actions) - shown only on small screens */}
+                    {/* Mobile Table (condensed) */}
                     <div className="block md:hidden bg-white rounded-xl shadow overflow-hidden">
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b">
@@ -272,65 +369,106 @@ export default function ProductsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 <AnimatePresence>
-                                    {filtered.map((product, i) => (
-                                        <motion.tr
-                                            key={product.id}
-                                            custom={i}
-                                            variants={rowVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            exit={{ opacity: 0, x: -20 }}
-                                            layout
-                                            className="hover:bg-gray-50"
-                                        >
-                                            {/* Image Column */}
-                                            <td className="px-4 py-4">
-                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                                                    <Image src={product.image} alt={product.name} fill className="object-cover" />
-                                                </div>
-                                            </td>
-
-                                            {/* Combined Info Column */}
-                                            <td className="px-4 py-4">
-                                                <div className="space-y-1">
-                                                    <div className="font-medium text-gray-900">{product.name}</div>
-                                                    <div className="text-xs text-gray-600">
-                                                        {product.generic?.name && <span>{product.generic.name} |</span>}
-                                                        {product.brand?.name && <span> {product.brand.name}</span>}
+                                    {filtered.map((product, i) => {
+                                        const discount = calculateDiscount(product.mrp, product.sellPrice);
+                                        const isAdding = addingProductId === product.id;
+                                        return (
+                                            <motion.tr
+                                                key={product.id}
+                                                custom={i}
+                                                variants={rowVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                exit={{ opacity: 0, x: -20 }}
+                                                layout
+                                                className="hover:bg-gray-50"
+                                            >
+                                                <td className="px-4 py-4">
+                                                    <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                                                        <Image src={product.image} alt={product.name} fill className="object-cover" />
+                                                        {discount > 0 && (
+                                                            <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] px-1 rounded-br-lg">
+                                                                {discount}%
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-semibold text-[#0F9D8F]">৳{product.sellPrice}</span>
-                                                        <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="space-y-1">
+                                                        <Link href={`/products/${product.id}`} className="font-medium text-gray-900 hover:text-[#0F9D8F]">
+                                                            {product.name}
+                                                        </Link>
+                                                        <div className="text-xs text-gray-600">
+                                                            {product.generic?.name && <span>{product.generic.name} |</span>}
+                                                            {product.brand?.name && <span> {product.brand.name}</span>}
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-semibold text-[#0F9D8F]">৳{product.sellPrice}</span>
+                                                            {product.mrp > product.sellPrice && (
+                                                                <span className="text-xs text-gray-400 line-through">৳{product.mrp}</span>
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-xs ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
                                                             {product.availability ? 'In Stock' : 'Out of Stock'}
                                                         </span>
                                                     </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Actions Column */}
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedProduct(product);
-                                                            setIsDetailsOpen(true);
-                                                        }}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                        aria-label="Details"
-                                                    >
-                                                        <Eye size={20} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleAddToCart(product)}
-                                                        className="text-green-600 hover:text-green-800"
-                                                        aria-label="Add to cart"
-                                                    >
-                                                        <ShoppingCart size={20} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </motion.tr>
-                                    ))}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-col gap-2 items-center">
+                                                        <Link
+                                                            href={`/products/${product.id}`}
+                                                            className="text-blue-600 hover:text-blue-800"
+                                                            aria-label="Details"
+                                                        >
+                                                            <Eye size={20} />
+                                                        </Link>
+                                                        {isAdding ? (
+                                                            <div className="flex flex-col items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                                                <div className="flex items-center">
+                                                                    <button
+                                                                        onClick={() => setTempQuantity(prev => Math.max(prev - 1, 1))}
+                                                                        className="p-1 text-gray-600"
+                                                                        disabled={tempQuantity <= 1}
+                                                                    >
+                                                                        <Minus size={16} />
+                                                                    </button>
+                                                                    <span className="w-6 text-center text-sm">{tempQuantity}</span>
+                                                                    <button
+                                                                        onClick={() => setTempQuantity(prev => prev + 1)}
+                                                                        className="p-1 text-gray-600"
+                                                                    >
+                                                                        <Plus size={16} />
+                                                                    </button>
+                                                                </div>
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        onClick={() => handleConfirmAdd(product)}
+                                                                        className="p-1 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded"
+                                                                    >
+                                                                        <Check size={16} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={handleCancelAdd}
+                                                                        className="p-1 text-gray-500"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleAddClick(product)}
+                                                                className="text-green-600 hover:text-green-800"
+                                                                aria-label="Add to cart"
+                                                            >
+                                                                <ShoppingCart size={20} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </motion.tr>
+                                        );
+                                    })}
                                 </AnimatePresence>
                             </tbody>
                         </table>
@@ -340,23 +478,6 @@ export default function ProductsPage() {
                     </div>
                 </>
             )}
-
-            {/* Modals */}
-            <ProductDetailsModal
-                isOpen={isDetailsOpen}
-                onClose={() => setIsDetailsOpen(false)}
-                product={selectedProduct}
-            />
-            <QuantityModal
-                isOpen={isQuantityOpen}
-                onClose={() => {
-                    setIsQuantityOpen(false);
-                    setProductToAdd(null);
-                }}
-                onConfirm={handleQuantityConfirm}
-                product={productToAdd}
-                maxQuantity={9999}
-            />
         </motion.div>
     );
 }

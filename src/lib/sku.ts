@@ -18,5 +18,5 @@ export async function generateNextSKU(): Promise<string> {
   }
   const nextNum = maxNum + 1;
   const padded = nextNum.toString().padStart(4, "0");
-  return `${padded}`;
+  return `SKU-${padded}`;
 }
