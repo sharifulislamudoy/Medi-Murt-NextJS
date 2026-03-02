@@ -49,6 +49,27 @@ function ProductCardSkeleton() {
     );
 }
 
+// Breadcrumb component that fetches the product name
+async function ProductBreadcrumb({ id }: { id: string }) {
+    const product = await prisma.product.findUnique({
+        where: { id },
+        select: { name: true },
+    });
+
+    // If product doesn't exist, let the page handle it (notFound already called)
+    if (!product) return null;
+
+    return (
+        <nav className="text-sm mb-6">
+            <Link href="/" className="text-gray-500 hover:text-[#0F9D8F]">Home</Link>
+            <span className="mx-2 text-gray-400">/</span>
+            <Link href="/products" className="text-gray-500 hover:text-[#0F9D8F]">Products</Link>
+            <span className="mx-2 text-gray-400">/</span>
+            <span className="text-gray-700">{product.name}</span>
+        </nav>
+    );
+}
+
 // Main product details (fetched data)
 async function ProductDetails({ id }: { id: string }) {
     const product = await prisma.product.findUnique({
@@ -219,14 +240,18 @@ export default async function ProductDetailsPage({ params }: Props) {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Breadcrumb (static, no data needed) */}
-            <nav className="text-sm mb-6">
-                <Link href="/" className="text-gray-500 hover:text-[#0F9D8F]">Home</Link>
-                <span className="mx-2 text-gray-400">/</span>
-                <Link href="/products" className="text-gray-500 hover:text-[#0F9D8F]">Products</Link>
-                <span className="mx-2 text-gray-400">/</span>
-                <span className="text-gray-700">Loading...</span> {/* Will be replaced after load */}
-            </nav>
+            {/* Breadcrumb with its own Suspense */}
+            <Suspense fallback={
+                <nav className="text-sm mb-6">
+                    <Link href="/" className="text-gray-500 hover:text-[#0F9D8F]">Home</Link>
+                    <span className="mx-2 text-gray-400">/</span>
+                    <Link href="/products" className="text-gray-500 hover:text-[#0F9D8F]">Products</Link>
+                    <span className="mx-2 text-gray-400">/</span>
+                    <span className="text-gray-700">Loading...</span>
+                </nav>
+            }>
+                <ProductBreadcrumb id={id} />
+            </Suspense>
 
             {/* Main product with Suspense */}
             <Suspense fallback={<ProductDetailsSkeleton />}>
