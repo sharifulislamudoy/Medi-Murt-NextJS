@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, LayoutGrid, Table, ShoppingCart, Minus, Plus, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LayoutGrid, Table, ShoppingCart, Minus, Plus, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 interface Product {
@@ -25,6 +26,7 @@ interface Product {
 type ViewMode = "card" | "table";
 
 export default function ProductsPage() {
+    const router = useRouter();
     const [products, setProducts] = useState<Product[]>([]);
     const [filtered, setFiltered] = useState<Product[]>([]);
     const [search, setSearch] = useState("");
@@ -157,13 +159,13 @@ export default function ProductsPage() {
             {/* Header with search and toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Products</h1>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 justify-between">
                     <input
                         type="text"
-                        placeholder="Search products..."
+                        placeholder="Search & Filter products..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+                        className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
                     />
                     <div className="flex bg-gray-100 rounded-lg p-1">
                         <button
@@ -187,9 +189,8 @@ export default function ProductsPage() {
             {/* Products Display */}
             {viewMode === "card" ? (
                 /* ---------- CARD VIEW ---------- */
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {isLoading ? (
-                        // Show skeleton cards
                         Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
                     ) : (
                         <AnimatePresence>
@@ -206,9 +207,11 @@ export default function ProductsPage() {
                                         animate="visible"
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         layout
-                                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
+                                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition cursor-pointer"
+                                        onClick={() => router.push(`/products/${product.id}`)}
                                     >
-                                        <Link href={`/products/${product.id}`} className="relative block h-48 w-full group">
+                                        {/* Entire card is clickable except the button area */}
+                                        <div>
                                             <div className="relative h-48 w-full">
                                                 <Image
                                                     src={product.image}
@@ -222,36 +225,31 @@ export default function ProductsPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                        </Link>
-                                        <div className="p-4">
-                                            <Link href={`/products/${product.id}`}>
-                                                <h3 className="font-semibold text-lg text-gray-800 line-clamp-1 hover:text-[#0F9D8F]">
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-lg text-gray-800 line-clamp-1">
                                                     {product.name}
                                                 </h3>
-                                            </Link>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                {product.generic?.name} {product.brand?.name && `| ${product.brand.name}`}
-                                            </p>
-                                            <div className="flex items-center justify-between mt-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xl font-bold text-[#0F9D8F]">৳{product.sellPrice}</span>
-                                                    {product.mrp > product.sellPrice && (
-                                                        <span className="text-sm text-gray-400 line-through">৳{product.mrp}</span>
-                                                    )}
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    {product.generic?.name} {product.brand?.name && `| ${product.brand.name}`}
+                                                </p>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xl font-bold text-[#0F9D8F]">৳{product.sellPrice}</span>
+                                                        {product.mrp > product.sellPrice && (
+                                                            <span className="text-sm text-gray-400 line-through">৳{product.mrp}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {product.availability ? 'In Stock' : 'Out of Stock'}
+                                                    </span>
                                                 </div>
-                                                <span className={`text-sm ${product.availability ? 'text-green-600' : 'text-red-500'}`}>
-                                                    {product.availability ? 'In Stock' : 'Out of Stock'}
-                                                </span>
                                             </div>
-                                            <div className="flex gap-2 mt-4">
-                                                <Link
-                                                    href={`/products/${product.id}`}
-                                                    className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
-                                                >
-                                                    <Eye size={18} /> Details
-                                                </Link>
+                                        </div>
+                                        {/* Buttons container - clicks don't navigate */}
+                                        <div className="p-4 pt-0" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex gap-2">
                                                 {isAdding ? (
-                                                    <div className="flex-1 flex items-center gap-1 bg-gray-100 rounded-lg">
+                                                    <div className="flex-1 flex items-center justify-between gap-1 bg-gray-100 rounded-lg">
                                                         <button
                                                             onClick={() => setTempQuantity(prev => Math.max(prev - 1, 1))}
                                                             className="p-2 text-gray-600 hover:text-[#0F9D8F]"
@@ -259,7 +257,7 @@ export default function ProductsPage() {
                                                         >
                                                             <Minus size={18} />
                                                         </button>
-                                                        <span className="w-8 text-center font-medium">{tempQuantity}</span>
+                                                        <span className="w-8 text-center text-black font-medium">{tempQuantity}</span>
                                                         <button
                                                             onClick={() => setTempQuantity(prev => prev + 1)}
                                                             className="p-2 text-gray-600 hover:text-[#0F9D8F]"
@@ -268,7 +266,7 @@ export default function ProductsPage() {
                                                         </button>
                                                         <button
                                                             onClick={() => handleConfirmAdd(product)}
-                                                            className="p-2 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-r-lg hover:opacity-90"
+                                                            className="p-2 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-r-lg hover:opacity-90 w-10"
                                                         >
                                                             <Check size={18} />
                                                         </button>
@@ -332,7 +330,8 @@ export default function ProductsPage() {
                                                     animate="visible"
                                                     exit={{ opacity: 0, x: -20 }}
                                                     layout
-                                                    className="hover:bg-gray-50"
+                                                    className="hover:bg-gray-50 cursor-pointer"
+                                                    onClick={() => router.push(`/products/${product.id}`)}
                                                 >
                                                     <td className="px-6 py-4">
                                                         <div className="relative w-12 h-12 rounded-lg overflow-hidden">
@@ -358,14 +357,9 @@ export default function ProductsPage() {
                                                             {product.availability ? 'In Stock' : 'Out of Stock'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex space-x-3 items-center">
-                                                            <Link
-                                                                href={`/products/${product.id}`}
-                                                                className="text-blue-600 hover:text-blue-800"
-                                                            >
-                                                                <Eye size={18} />
-                                                            </Link>
+                                                    {/* Actions column - clicks don't navigate */}
+                                                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center space-x-3">
                                                             {isAdding ? (
                                                                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg">
                                                                     <button
@@ -375,7 +369,7 @@ export default function ProductsPage() {
                                                                     >
                                                                         <Minus size={16} />
                                                                     </button>
-                                                                    <span className="w-6 text-center text-sm">{tempQuantity}</span>
+                                                                    <span className="w-6 text-center text-black text-sm">{tempQuantity}</span>
                                                                     <button
                                                                         onClick={() => setTempQuantity(prev => prev + 1)}
                                                                         className="p-1 text-gray-600 hover:text-[#0F9D8F]"
@@ -417,7 +411,7 @@ export default function ProductsPage() {
                         )}
                     </div>
 
-                    {/* Mobile Table (condensed) */}
+                    {/* Mobile Table (condensed) - improved layout */}
                     <div className="block md:hidden bg-white rounded-xl shadow overflow-hidden">
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b">
@@ -444,7 +438,8 @@ export default function ProductsPage() {
                                                     animate="visible"
                                                     exit={{ opacity: 0, x: -20 }}
                                                     layout
-                                                    className="hover:bg-gray-50"
+                                                    className="hover:bg-gray-50 cursor-pointer"
+                                                    onClick={() => router.push(`/products/${product.id}`)}
                                                 >
                                                     <td className="px-4 py-4">
                                                         <div className="relative w-12 h-12 rounded-lg overflow-hidden">
@@ -458,9 +453,9 @@ export default function ProductsPage() {
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <div className="space-y-1">
-                                                            <Link href={`/products/${product.id}`} className="font-medium text-gray-900 hover:text-[#0F9D8F]">
+                                                            <div className="font-medium text-gray-900">
                                                                 {product.name}
-                                                            </Link>
+                                                            </div>
                                                             <div className="text-xs text-gray-600">
                                                                 {product.generic?.name && <span>{product.generic.name} |</span>}
                                                                 {product.brand?.name && <span> {product.brand.name}</span>}
@@ -476,43 +471,37 @@ export default function ProductsPage() {
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="flex flex-col gap-2 items-center">
-                                                            <Link
-                                                                href={`/products/${product.id}`}
-                                                                className="text-blue-600 hover:text-blue-800"
-                                                                aria-label="Details"
-                                                            >
-                                                                <Eye size={20} />
-                                                            </Link>
+                                                    {/* Actions column - clicks don't navigate, with improved spacing */}
+                                                    <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex flex-col items-center gap-2 min-w-[80px]">
                                                             {isAdding ? (
-                                                                <div className="flex flex-col items-center gap-1 bg-gray-100 rounded-lg p-1">
-                                                                    <div className="flex items-center">
+                                                                <div className="flex flex-col items-center gap-1 bg-gray-100 rounded-lg p-2 w-full">
+                                                                    <div className="flex items-center justify-center gap-2">
                                                                         <button
                                                                             onClick={() => setTempQuantity(prev => Math.max(prev - 1, 1))}
-                                                                            className="p-1 text-gray-600"
+                                                                            className="p-2 text-gray-600 hover:text-[#0F9D8F]"
                                                                             disabled={tempQuantity <= 1}
                                                                         >
-                                                                            <Minus size={16} />
+                                                                            <Minus size={18} />
                                                                         </button>
-                                                                        <span className="w-6 text-center text-sm">{tempQuantity}</span>
+                                                                        <span className="w-8 text-center font-medium text-black">{tempQuantity}</span>
                                                                         <button
                                                                             onClick={() => setTempQuantity(prev => prev + 1)}
-                                                                            className="p-1 text-gray-600"
+                                                                            className="p-2 text-gray-600 hover:text-[#0F9D8F]"
                                                                         >
-                                                                            <Plus size={16} />
+                                                                            <Plus size={18} />
                                                                         </button>
                                                                     </div>
-                                                                    <div className="flex gap-1">
+                                                                    <div className="flex gap-2 w-full justify-center">
                                                                         <button
                                                                             onClick={() => handleConfirmAdd(product)}
-                                                                            className="p-1 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded"
+                                                                            className="p-2 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-lg flex-1"
                                                                         >
-                                                                            <Check size={16} />
+                                                                            <Check size={18} className="mx-auto" />
                                                                         </button>
                                                                         <button
                                                                             onClick={handleCancelAdd}
-                                                                            className="p-1 text-gray-500"
+                                                                            className="p-2 text-gray-500 hover:text-gray-700"
                                                                         >
                                                                             ✕
                                                                         </button>
@@ -521,10 +510,10 @@ export default function ProductsPage() {
                                                             ) : (
                                                                 <button
                                                                     onClick={() => handleAddClick(product)}
-                                                                    className="text-green-600 hover:text-green-800"
+                                                                    className="p-3 text-green-600 hover:text-green-800 bg-gray-50 rounded-lg w-full flex justify-center"
                                                                     aria-label="Add to cart"
                                                                 >
-                                                                    <ShoppingCart size={20} />
+                                                                    <ShoppingCart size={22} />
                                                                 </button>
                                                             )}
                                                         </div>
