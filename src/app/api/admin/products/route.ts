@@ -1,14 +1,11 @@
-// app/api/admin/products/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateNextSKU } from "@/lib/sku";
 
-// GET all products (Admin only)
 export async function GET() {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -17,17 +14,22 @@ export async function GET() {
     include: {
       generic: true,
       brand: true,
+      stock: true,   // include stock
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(products);
+  // Flatten stock for admin table (optional, but we keep stock.quantity for editing)
+  const mapped = products.map(p => ({
+    ...p,
+    stock: p.stock?.quantity ?? 0,
+  }));
+
+  return NextResponse.json(mapped);
 }
 
-// CREATE product
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -36,27 +38,21 @@ export async function POST(req: Request) {
     name,
     category,
     mrp,
-    genericName,   // string (optional)
-    brandName,     // string (optional)
+    genericName,
+    brandName,
     image,
     description,
     sellPrice,
     costPrice,
-    stock,
+    stock,           // this is the initial quantity
   } = await req.json();
 
-  // Validate required fields
   if (!name || !category || !mrp || !image || !description || !sellPrice || !costPrice || stock === undefined) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Generate SKU
   const sku = await generateNextSKU();
 
-  // Handle generic: find or create
   let genericId = null;
   if (genericName) {
     const generic = await prisma.generic.upsert({
@@ -67,7 +63,6 @@ export async function POST(req: Request) {
     genericId = generic.id;
   }
 
-  // Handle brand: find or create
   let brandId = null;
   if (brandName) {
     const brand = await prisma.brand.upsert({
@@ -78,25 +73,34 @@ export async function POST(req: Request) {
     brandId = brand.id;
   }
 
-  const product = await prisma.product.create({
-    data: {
-      name,
-      category,
-      sku,
-      mrp: parseFloat(mrp),
-      genericId,
-      brandId,
-      image,
-      description,
-      sellPrice: parseFloat(sellPrice),
-      costPrice: parseFloat(costPrice),
-      stock: parseInt(stock, 10),
-    },
-    include: {
-      generic: true,
-      brand: true,
-    },
+  // Use transaction to create product and its stock record
+  const product = await prisma.$transaction(async (tx) => {
+    const newProduct = await tx.product.create({
+      data: {
+        name,
+        category,
+        sku,
+        mrp: parseFloat(mrp),
+        genericId,
+        brandId,
+        image,
+        description,
+        sellPrice: parseFloat(sellPrice),
+        costPrice: parseFloat(costPrice),
+      },
+      include: { generic: true, brand: true },
+    });
+
+    await tx.stock.create({
+      data: {
+        productId: newProduct.id,
+        quantity: parseInt(stock, 10),
+      },
+    });
+
+    return newProduct;
   });
 
-  return NextResponse.json(product);
+  // Return with stock field for consistency
+  return NextResponse.json({ ...product, stock: parseInt(stock, 10) });
 }

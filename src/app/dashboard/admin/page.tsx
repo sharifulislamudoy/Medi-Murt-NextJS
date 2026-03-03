@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import ResetStoreButton from "@/components/admin/ResetStoreButton"; // we'll create this component
 
 export default async function AdminDashboardHome() {
   const session = await getServerSession(authOptions);
@@ -21,24 +22,23 @@ export default async function AdminDashboardHome() {
     );
   }
 
-  // Fetch counts for dashboard stats (optional, but you can replace with static UI)
-  const [
-    totalUsers,
-    pendingUsers,
-  ] = await Promise.all([
+  const [totalUsers, pendingUsers] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { status: "PENDING" } }),
   ]);
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Welcome back, {session.user.name}!
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Here's what's happening with your platform today.
-        </p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            Welcome back, {session.user.name}!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Here's what's happening with your platform today.
+          </p>
+        </div>
+        <ResetStoreButton />
       </div>
 
       {/* Stats Cards */}
@@ -87,7 +87,7 @@ export default async function AdminDashboardHome() {
   );
 }
 
-// Helper components
+// Helper components (StatCard, ActivityItem) unchanged
 function StatCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
   return (
     <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">

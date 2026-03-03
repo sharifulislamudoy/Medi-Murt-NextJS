@@ -33,7 +33,7 @@ interface Product {
   description: string;
   sellPrice: number;
   costPrice: number;
-  stock: number;
+  stock: number;          // flattened stock quantity
 }
 
 interface Props {
@@ -326,9 +326,9 @@ export default function EditProductModal({ isOpen, onClose, onSuccess, product }
             />
           </div>
 
-          {/* Stock */}
+          {/* Stock (Quantity) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
             <input
               type="number"
               min="0"

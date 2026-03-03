@@ -77,6 +77,7 @@ async function ProductDetails({ id }: { id: string }) {
         include: {
             generic: true,
             brand: true,
+            stock: true,
         },
     });
 

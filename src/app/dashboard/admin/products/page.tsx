@@ -189,7 +189,7 @@ export default function AdminProductsPage() {
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none"
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black"
           />
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -212,6 +212,7 @@ export default function AdminProductsPage() {
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">SKU</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Brand</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">MRP</th>
+              <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Cost</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Sell</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Stock</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Status</th>
@@ -246,6 +247,7 @@ export default function AdminProductsPage() {
                   <td className="px-2 py-2 text-sm text-gray-600">{product.sku}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">{product.brand?.name || '-'}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">৳{product.mrp}</td>
+                  <td className="px-2 py-2 text-sm text-gray-600">৳{product.costPrice}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">৳{product.sellPrice}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">{product.stock}</td>
                   {/* Status Toggle */}

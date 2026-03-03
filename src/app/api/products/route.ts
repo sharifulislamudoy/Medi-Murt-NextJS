@@ -1,18 +1,25 @@
-// app/api/products/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
-      where: { status: true }, // only show products with status true
+      where: { status: true },
       include: {
         generic: true,
         brand: true,
+        stock: true,          // include stock relation
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(products);
+
+    // Map to include stock quantity as a flat field (for frontend compatibility)
+    const mapped = products.map(p => ({
+      ...p,
+      stock: p.stock?.quantity ?? 0,
+    }));
+
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error("Failed to fetch products:", error);
     return NextResponse.json(

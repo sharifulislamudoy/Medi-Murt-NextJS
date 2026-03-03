@@ -39,7 +39,7 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
     description: "",
     sellPrice: "",
     costPrice: "",
-    stock: "",
+    stock: "",          // this is the initial quantity
   });
 
   const [loading, setLoading] = useState(false);
@@ -307,9 +307,9 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
             />
           </div>
 
-          {/* Stock */}
+          {/* Stock (Quantity) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
             <input
               type="number"
               min="0"

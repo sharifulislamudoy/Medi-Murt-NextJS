@@ -1,4 +1,3 @@
-// app/api/admin/products/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -9,7 +8,6 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -26,9 +24,9 @@ export async function PUT(
     description,
     sellPrice,
     costPrice,
-    stock,
-    status,          // add
-    availability,    // add
+    status,
+    availability,
+    stock,      // new quantity value
   } = body;
 
   // Handle generic upsert
@@ -61,29 +59,41 @@ export async function PUT(
     }
   }
 
-  const updated = await prisma.product.update({
-    where: { id },
-    data: {
-      name,
-      category,
-      mrp: mrp ? parseFloat(mrp) : undefined,
-      genericId,
-      brandId,
-      image,
-      description,
-      sellPrice: sellPrice ? parseFloat(sellPrice) : undefined,
-      costPrice: costPrice ? parseFloat(costPrice) : undefined,
-      stock: stock !== undefined ? parseInt(stock, 10) : undefined,
-      status: status !== undefined ? status : undefined,  // add
-      availability: availability !== undefined ? availability : undefined, // add
-    },
-    include: {
-      generic: true,
-      brand: true,
-    },
+  // Update product and stock in a transaction
+  const updated = await prisma.$transaction(async (tx) => {
+    const product = await tx.product.update({
+      where: { id },
+      data: {
+        name,
+        category,
+        mrp: mrp ? parseFloat(mrp) : undefined,
+        genericId,
+        brandId,
+        image,
+        description,
+        sellPrice: sellPrice ? parseFloat(sellPrice) : undefined,
+        costPrice: costPrice ? parseFloat(costPrice) : undefined,
+        status: status !== undefined ? status : undefined,
+        availability: availability !== undefined ? availability : undefined,
+      },
+      include: { generic: true, brand: true },
+    });
+
+    // Update or create stock record
+    if (stock !== undefined) {
+      await tx.stock.upsert({
+        where: { productId: id },
+        update: { quantity: parseInt(stock, 10) },
+        create: { productId: id, quantity: parseInt(stock, 10) },
+      });
+    }
+
+    return product;
   });
 
-  return NextResponse.json(updated);
+  // Fetch the final stock to include in response
+  const stockRecord = await prisma.stock.findUnique({ where: { productId: id } });
+  return NextResponse.json({ ...updated, stock: stockRecord?.quantity ?? 0 });
 }
 
 export async function DELETE(
@@ -91,13 +101,13 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await context.params;
 
+  // Delete product – Stock will be cascaded automatically
   await prisma.product.delete({
     where: { id },
   });
