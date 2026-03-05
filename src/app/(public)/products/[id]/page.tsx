@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import AddToCartButton from "@/components/products/AddToCartButton";
+import FavouriteButton from "@/components/products/FavouriteButton";
 import { Suspense } from "react";
 import ProductSliderWrapper from "@/components/products/ProductSliderWrapper";
 import ProductCard from "@/components/products/ProductCard"; // for skeleton fallback if needed
@@ -127,7 +128,10 @@ async function ProductDetails({ id }: { id: string }) {
             <h3 className="font-medium text-black mb-2">Description</h3>
             <p className="text-gray-500 whitespace-pre-line">{product.description}</p>
           </div>
-          <AddToCartButton product={product} />
+          <div className="flex items-center gap-3">
+            <AddToCartButton product={product} />
+            <FavouriteButton product={product} />
+          </div>
         </div>
       </div>
     </div>

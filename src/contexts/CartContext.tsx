@@ -51,10 +51,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   }, [items]);
 
   const addItem = (product: any, quantity: number) => {
+    // Determine price: prefer sellPrice (from product API), fallback to price (from favourites)
+    const price = product.sellPrice !== undefined ? product.sellPrice : product.price;
     setItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        // No stock limit check
         return prev.map(item =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
@@ -65,7 +66,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
           id: product.id,
           name: product.name,
           image: product.image,
-          price: product.sellPrice,
+          price,
           quantity,
         }];
       }

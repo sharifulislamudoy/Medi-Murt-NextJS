@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LayoutGrid, Table, ShoppingCart, Minus, Plus, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useFavourites } from "@/contexts/FavouritesContext";
 
 interface Product {
     id: string;
@@ -33,6 +34,7 @@ export default function ProductsPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("card");
     const [isLoading, setIsLoading] = useState(true);
     const { addItem } = useCart();
+    const { isFavourite, addFavourite, removeFavourite } = useFavourites();
 
     // Inline quantity selector state
     const [addingProductId, setAddingProductId] = useState<string | null>(null);
@@ -224,6 +226,33 @@ export default function ProductsPage() {
                                                         {discount}% OFF
                                                     </div>
                                                 )}
+                                                {/* Favourite button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isFavourite(product.id)) {
+                                                            removeFavourite(product.id);
+                                                        } else {
+                                                            addFavourite(product);
+                                                        }
+                                                    }}
+                                                    className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:scale-110 transition z-10"
+                                                >
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill={isFavourite(product.id) ? "currentColor" : "none"}
+                                                        viewBox="0 0 24 24"
+                                                        strokeWidth={1.5}
+                                                        stroke="currentColor"
+                                                        className={`w-5 h-5 ${isFavourite(product.id) ? 'text-red-500' : 'text-gray-600'}`}
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                                        />
+                                                    </svg>
+                                                </button>
                                             </div>
                                             <div className="p-4">
                                                 <h3 className="font-semibold text-lg text-gray-800 line-clamp-1">
@@ -360,6 +389,34 @@ export default function ProductsPage() {
                                                     {/* Actions column - clicks don't navigate */}
                                                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center space-x-3">
+                                                            {/* Favourite icon */}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (isFavourite(product.id)) {
+                                                                        removeFavourite(product.id);
+                                                                    } else {
+                                                                        addFavourite(product);
+                                                                    }
+                                                                }}
+                                                                className="text-gray-500 hover:text-red-500"
+                                                            >
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    fill={isFavourite(product.id) ? "currentColor" : "none"}
+                                                                    viewBox="0 0 24 24"
+                                                                    strokeWidth={1.5}
+                                                                    stroke="currentColor"
+                                                                    className="w-5 h-5"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                            {/* Cart */}
                                                             {isAdding ? (
                                                                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg">
                                                                     <button
@@ -474,6 +531,34 @@ export default function ProductsPage() {
                                                     {/* Actions column - clicks don't navigate, with improved spacing */}
                                                     <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                                                            {/* Favourite icon */}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (isFavourite(product.id)) {
+                                                                        removeFavourite(product.id);
+                                                                    } else {
+                                                                        addFavourite(product);
+                                                                    }
+                                                                }}
+                                                                className="p-2 text-gray-500 hover:text-red-500"
+                                                            >
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    fill={isFavourite(product.id) ? "currentColor" : "none"}
+                                                                    viewBox="0 0 24 24"
+                                                                    strokeWidth={1.5}
+                                                                    stroke="currentColor"
+                                                                    className="w-5 h-5"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                            {/* Cart */}
                                                             {isAdding ? (
                                                                 <div className="flex flex-col items-center gap-1 bg-gray-100 rounded-lg p-2 w-full">
                                                                     <div className="flex items-center justify-center gap-2">
