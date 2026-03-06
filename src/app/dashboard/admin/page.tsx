@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ResetStoreButton from "@/components/admin/ResetStoreButton"; // we'll create this component
+import SetCutoffTimeButton from "@/components/admin/SetCutoffTimeButton";
 
 export default async function AdminDashboardHome() {
   const session = await getServerSession(authOptions);
@@ -38,7 +39,10 @@ export default async function AdminDashboardHome() {
             Here's what's happening with your platform today.
           </p>
         </div>
-        <ResetStoreButton />
+        <div className="flex gap-5">
+          <ResetStoreButton />
+          <SetCutoffTimeButton />
+        </div>
       </div>
 
       {/* Stats Cards */}

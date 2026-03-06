@@ -17,6 +17,7 @@ export default function AdminLayout({
     { name: "Advertisement", href: "/dashboard/admin/advertisements" },
     { name: "Users", href: "/dashboard/admin/users" },
     { name: "Products", href: "/dashboard/admin/products" },
+    { name: "Orders", href: "/dashboard/admin/orders" },
     
   ];
 
@@ -41,7 +42,7 @@ export default function AdminLayout({
           </div>
 
           {/* Navigation - horizontal scroll on mobile if needed, stacked on desktop */}
-          <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 md:space-y-2">
+          <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 md:space-y-1">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -51,7 +52,7 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex-shrink-0 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                  className={`flex-shrink-0 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
                       ? "bg-gradient-to-r from-[#156A98]/10 to-[#0F9D8F]/10 text-[#156A98] font-medium border-l-4 md:border-l-4 border-l-0 md:border-l-4 border-b-2 md:border-b-0 border-[#0F9D8F]"
                       : "text-gray-600 hover:bg-gray-100 hover:text-[#0F9D8F]"
                     }`}
