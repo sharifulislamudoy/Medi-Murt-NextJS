@@ -1,0 +1,292 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MoreVertical, Eye, Edit, Tag } from 'lucide-react';
+import toast from 'react-hot-toast';
+import ViewOrderModal from '@/components/admin/ViewOrderModal';
+import EditOrderModal from '@/components/admin/EditOrderModal';
+import StatusModal from '@/components/admin/StatusModal';
+
+
+interface Order {
+  id: string;
+  invoiceNo: string;
+  orderDate: string;
+  deliveryDate: string;
+  customerName: string;
+  customerShopName: string | null;
+  customerAddress: string;
+  customerPhone: string;
+  totalAmount: number;
+  paymentMethod: string;
+  paymentStatus: 'DUE' | 'PAID';
+  status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  items: OrderItem[];
+}
+
+interface OrderItem {
+  id: string;
+  productId: string;
+  product: {
+    name: string;
+    image: string;
+    sku: string;
+  };
+  quantity: number;
+  price: number;
+}
+
+export default function AdminOrdersPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [filtered, setFiltered] = useState<Order[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+    if (status === 'authenticated') {
+      fetchOrders();
+    }
+  }, [status, router]);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/admin/orders');
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Unauthorized');
+          router.push('/login');
+          return;
+        }
+        throw new Error('Failed to fetch');
+      }
+      const data = await res.json();
+      setOrders(data.orders);
+      setFiltered(data.orders);
+    } catch (error) {
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const lower = search.toLowerCase();
+    setFiltered(
+      orders.filter(
+        (o) =>
+          o.invoiceNo.toLowerCase().includes(lower) ||
+          o.customerName.toLowerCase().includes(lower) ||
+          o.customerPhone.includes(lower)
+      )
+    );
+  }, [search, orders]);
+
+  const handleView = (order: Order) => {
+    setSelectedOrder(order);
+    setViewModalOpen(true);
+    setActiveDropdown(null);
+  };
+
+  const handleEdit = (order: Order) => {
+    setSelectedOrder(order);
+    setEditModalOpen(true);
+    setActiveDropdown(null);
+  };
+
+  const handleStatus = (order: Order) => {
+    setSelectedOrder(order);
+    setStatusModalOpen(true);
+    setActiveDropdown(null);
+  };
+
+  const rowVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.03, duration: 0.3 },
+    }),
+    exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0F9D8F]"></div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold text-gray-800">Orders</h1>
+        <input
+          type="text"
+          placeholder="Search by invoice, customer, phone..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black w-full sm:w-80"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow overflow-x-auto">
+        <table className="w-full min-w-[1200px]">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Invoice</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Order Date</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Customer Info</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Total</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Paid</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Due</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Payment Method</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            <AnimatePresence>
+              {filtered.map((order, index) => {
+                const paid = order.paymentStatus === 'PAID' ? order.totalAmount : 0;
+                const due = order.totalAmount - paid;
+                return (
+                  <motion.tr
+                    key={order.id}
+                    custom={index}
+                    variants={rowVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    layout
+                    className="hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{order.invoiceNo}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {new Date(order.orderDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <div className="space-y-1">
+                        {order.customerShopName && <div className="font-medium">{order.customerShopName}</div>}
+                        <div>{order.customerName}</div>
+                        <div className="text-xs text-gray-500">{order.customerAddress}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-[#0F9D8F]">৳{order.totalAmount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-green-600">৳{paid.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-red-600">৳{due.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{order.paymentMethod}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          order.status === 'PENDING'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : order.status === 'PROCESSING'
+                            ? 'bg-blue-100 text-blue-800'
+                            : order.status === 'SHIPPED'
+                            ? 'bg-purple-100 text-purple-800'
+                            : order.status === 'DELIVERED'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 relative">
+                      <button
+                        onClick={() =>
+                          setActiveDropdown(activeDropdown === order.id ? null : order.id)
+                        }
+                        className="bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white text-center p-1 rounded-full hover:opacity-90 transition"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      <AnimatePresence>
+                        {activeDropdown === order.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                          >
+                            <button
+                              onClick={() => handleView(order)}
+                              className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              <Eye size={16} /> View Order
+                            </button>
+                            <button
+                              onClick={() => handleEdit(order)}
+                              className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              <Edit size={16} /> Edit Order
+                            </button>
+                            <button
+                              onClick={() => handleStatus(order)}
+                              className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              <Tag size={16} /> Edit Status
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </AnimatePresence>
+          </tbody>
+        </table>
+        {filtered.length === 0 && !loading && (
+          <div className="text-center py-12 text-gray-500">No orders found.</div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <ViewOrderModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        order={selectedOrder}
+      />
+      <EditOrderModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        order={selectedOrder}
+        onSuccess={() => {
+          fetchOrders();
+          setEditModalOpen(false);
+        }}
+      />
+      <StatusModal
+        isOpen={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        order={selectedOrder}
+        onSuccess={() => {
+          fetchOrders();
+          setStatusModalOpen(false);
+        }}
+      />
+    </motion.div>
+  );
+}
