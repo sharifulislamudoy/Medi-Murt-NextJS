@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreVertical, Eye, Edit, Tag } from 'lucide-react';
+import { MoreVertical, Eye, Edit, Tag, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ViewOrderModal from '@/components/admin/ViewOrderModal';
 import EditOrderModal from '@/components/admin/EditOrderModal';
 import StatusModal from '@/components/admin/StatusModal';
+import DeleteOrderModal from '@/components/admin/DeleteOrderModal';
 
 interface Order {
     id: string;
@@ -44,12 +45,14 @@ export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [filtered, setFiltered] = useState<Order[]>([]);
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('ALL'); // 'ALL' or a specific status
+    const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [statusModalOpen, setStatusModalOpen] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
     useEffect(() => {
@@ -82,7 +85,6 @@ export default function AdminOrdersPage() {
         }
     };
 
-    // Filter orders based on search and status filter
     useEffect(() => {
         const lower = search.toLowerCase();
         setFiltered(
@@ -115,6 +117,28 @@ export default function AdminOrdersPage() {
         setActiveDropdown(null);
     };
 
+    const handleDeleteClick = (order: Order) => {
+        setSelectedOrder(order);
+        setDeleteModalOpen(true);
+        setActiveDropdown(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedOrder) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${selectedOrder.id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete');
+            toast.success('Order deleted successfully');
+            setDeleteModalOpen(false);
+            fetchOrders();
+        } catch (error) {
+            toast.error('Failed to delete order');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const rowVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: (i: number) => ({
@@ -141,7 +165,6 @@ export default function AdminOrdersPage() {
             className="space-y-6"
         >
             <h1 className="text-3xl font-bold text-gray-800">Orders</h1>
-            {/* Header with filter buttons and search */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -208,7 +231,6 @@ export default function AdminOrdersPage() {
                 />
             </div>
 
-            {/* Table */}
             <div className="bg-white rounded-xl shadow overflow-x-auto">
                 <table className="w-full min-w-[1200px]">
                     <thead className="bg-gray-100 border-b">
@@ -276,7 +298,7 @@ export default function AdminOrdersPage() {
                                                 onClick={() =>
                                                     setActiveDropdown(activeDropdown === order.id ? null : order.id)
                                                 }
-                                                className="bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white text-center p-1 rounded-full hover:opacity-90 transition"
+                                                className="bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white p-1 rounded-full hover:opacity-90 transition"
                                             >
                                                 <MoreVertical size={18} />
                                             </button>
@@ -306,6 +328,12 @@ export default function AdminOrdersPage() {
                                                         >
                                                             <Tag size={16} /> Edit Status
                                                         </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(order)}
+                                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 size={16} /> Delete Order
+                                                        </button>
                                                     </motion.div>
                                                 )}
                                             </AnimatePresence>
@@ -321,7 +349,6 @@ export default function AdminOrdersPage() {
                 )}
             </div>
 
-            {/* Modals */}
             <ViewOrderModal
                 isOpen={viewModalOpen}
                 onClose={() => setViewModalOpen(false)}
@@ -344,6 +371,13 @@ export default function AdminOrdersPage() {
                     fetchOrders();
                     setStatusModalOpen(false);
                 }}
+            />
+            <DeleteOrderModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                invoiceNo={selectedOrder?.invoiceNo || ''}
+                loading={deleting}
             />
         </motion.div>
     );

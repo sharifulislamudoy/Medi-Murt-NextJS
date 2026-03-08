@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// GET single order (already used in view modal)
+// GET single order
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,7 +63,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid items data' }, { status: 400 });
     }
 
-    // Fetch current order with items
     const order = await prisma.order.findUnique({
       where: { id },
       include: { items: true },
@@ -73,13 +72,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // We'll do a transaction to replace items and update stock accordingly
     await prisma.$transaction(async (tx) => {
-      // Get existing items
       const existingItems = order.items;
 
-      // Calculate stock adjustments:
-      // For each existing item, we need to add back its quantity (since we'll remove them)
+      // Restore stock for existing items
       for (const existing of existingItems) {
         await tx.stock.update({
           where: { productId: existing.productId },
@@ -90,7 +86,7 @@ export async function PUT(
       // Delete all existing order items
       await tx.orderItem.deleteMany({ where: { orderId: id } });
 
-      // Now create new items and decrement stock
+      // Create new items and decrement stock
       let newTotal = 0;
       for (const item of items) {
         const product = await tx.product.findUnique({
@@ -101,13 +97,11 @@ export async function PUT(
 
         newTotal += product.sellPrice * item.quantity;
 
-        // Decrement stock
         await tx.stock.update({
           where: { productId: item.productId },
           data: { quantity: { decrement: item.quantity } },
         });
 
-        // Create order item
         await tx.orderItem.create({
           data: {
             orderId: id,
@@ -158,6 +152,47 @@ export async function PATCH(
     return NextResponse.json({ message: 'Order status updated' });
   } catch (error) {
     console.error('Error updating order status:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// DELETE – Delete an order and revert stock
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    await prisma.$transaction(async (tx) => {
+      // Get order items to revert stock
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
+      if (!order) throw new Error('Order not found');
+
+      // Revert stock for each item
+      for (const item of order.items) {
+        await tx.stock.update({
+          where: { productId: item.productId },
+          data: { quantity: { increment: item.quantity } },
+        });
+      }
+
+      // Delete order (cascades to order items if schema has onDelete: Cascade)
+      await tx.order.delete({ where: { id } });
+    });
+
+    return NextResponse.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting order:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
