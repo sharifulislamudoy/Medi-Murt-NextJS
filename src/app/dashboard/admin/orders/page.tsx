@@ -214,7 +214,7 @@ export default function AdminOrdersPage() {
                     <thead className="bg-gray-100 border-b">
                         <tr>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Invoice</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Order Date</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Order Date & Time</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Customer Info</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Total</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase">Paid</th>
@@ -242,13 +242,13 @@ export default function AdminOrdersPage() {
                                     >
                                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{order.invoiceNo}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">
-                                            {new Date(order.orderDate).toLocaleDateString()}
+                                            {new Date(order.orderDate).toLocaleString()}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-600">
                                             <div className="space-y-1">
-                                                {order.customerShopName && <div className="font-medium">{order.customerShopName}</div>}
+                                                {order.customerShopName && <div className="font-bold">{order.customerShopName}</div>}
                                                 <div>{order.customerName}</div>
-                                                <div className="text-xs text-gray-500">{order.customerAddress}</div>
+                                                <div className="text-xs text-gray-500">{order.customerPhone}</div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-medium text-[#0F9D8F]">৳{order.totalAmount.toFixed(2)}</td>
