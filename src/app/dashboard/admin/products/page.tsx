@@ -210,7 +210,7 @@ export default function AdminProductsPage() {
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">MRP</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Cost</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Sell</th>
-              <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Margin %</th> {/* 👈 NEW COLUMN */}
+              <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Margin %</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Stock</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">Status</th>
               <th className="px-2 py-2 text-left text-sm font-medium text-gray-500 uppercase">In Stock</th>
@@ -246,7 +246,7 @@ export default function AdminProductsPage() {
                   <td className="px-2 py-2 text-sm text-gray-600">৳{product.mrp}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">৳{product.costPrice}</td>
                   <td className="px-2 py-2 text-sm text-gray-600">৳{product.sellPrice}</td>
-                  <td className="px-2 py-2 text-sm text-gray-600">{product.profitMargin}%</td> {/* 👈 NEW DATA */}
+                  <td className="px-2 py-2 text-sm text-gray-600">{product.profitMargin}%</td>
                   <td className="px-2 py-2 text-sm text-gray-600">{product.stock}</td>
                   {/* Status Toggle */}
                   <td className="px-2 py-2">
