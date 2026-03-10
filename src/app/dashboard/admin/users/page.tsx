@@ -1,11 +1,8 @@
-// app/dashboard/admin/users/page.tsx
-
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import UsersTable from "@/components/UsersTable";
-
 
 export default async function AdminUsersPage() {
   // 🔒 Check if user is logged in
@@ -25,7 +22,7 @@ export default async function AdminUsersPage() {
     );
   }
 
-  // 📦 Fetch ALL users from the database
+  // 📦 Fetch ALL users from the database, including their area details
   const users = await prisma.user.findMany({
     select: {
       id: true,
@@ -37,6 +34,13 @@ export default async function AdminUsersPage() {
       role: true,
       status: true,
       createdAt: true,
+      // 👇 NEW: include the area relation to get name and trCode
+      area: {
+        select: {
+          name: true,
+          trCode: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" }, // newest first
   });
@@ -54,6 +58,7 @@ export default async function AdminUsersPage() {
         users={users.map((u) => ({
           ...u,
           createdAt: u.createdAt.toISOString(), // convert Date → string
+          area: u.area, // keep the area object
         }))}
       />
     </div>

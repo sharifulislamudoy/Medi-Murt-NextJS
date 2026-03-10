@@ -1,9 +1,9 @@
-// components/UsersTable.tsx
 "use client";
 
 import { useState } from "react";
 import StatusActionButton from "@/components/StatusActionButton";
 
+// 👇 Updated type to include area (name & trCode)
 type User = {
   id: string;
   name: string;
@@ -14,6 +14,10 @@ type User = {
   role: "ADMIN" | "SHOP_OWNER" | "DELIVERY_BOY" | "SUPPLIER";
   status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
   createdAt: string;
+  area: {
+    name: string;
+    trCode: string;
+  } | null; // area may be null if not set
 };
 
 type Props = {
@@ -26,18 +30,18 @@ type FilterValue =
   | { type: "role"; value: User["role"] }
   | null; // null represents "All"
 
-
 type TabItem =
   | {
-    label: string;
-    filter: FilterValue;
-    isSeparator?: false;
-  }
+      label: string;
+      filter: FilterValue;
+      isSeparator?: false;
+    }
   | {
-    isSeparator: true;
-    label?: string;
-    filter?: null;
-  };
+      isSeparator: true;
+      label?: string;
+      filter?: null;
+    };
+
 // Tab configuration – each tab has a label and a corresponding filter value
 const TABS: TabItem[] = [
   { label: "All", filter: null },
@@ -57,8 +61,6 @@ const TABS: TabItem[] = [
   { label: "Supplier", filter: { type: "role", value: "SUPPLIER" } },
   { label: "Admin", filter: { type: "role", value: "ADMIN" } },
 ];
-
-
 
 export default function UsersTable({ users }: Props) {
   const [currentFilter, setCurrentFilter] = useState<FilterValue>(null);
@@ -118,24 +120,26 @@ export default function UsersTable({ users }: Props) {
             tab.filter === null
               ? currentFilter === null
               : currentFilter !== null &&
-              currentFilter.type === tab.filter.type &&
-              currentFilter.value === tab.filter.value;
+                currentFilter.type === tab.filter.type &&
+                currentFilter.value === tab.filter.value;
 
           return (
             <button
               key={tab.label}
               onClick={() => setCurrentFilter(tab.filter)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isActive
-                ? "bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white shadow"
-                : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                isActive
+                  ? "bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white shadow"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {tab.label}
               <span
-                className={`text-xs px-2 py-0.5 hidden 2xl:flex rounded-full ${isActive
-                  ? "bg-white/20 text-white"
-                  : "bg-gray-100 text-gray-500"
-                  }`}
+                className={`text-xs px-2 py-0.5 hidden 2xl:flex rounded-full ${
+                  isActive
+                    ? "bg-white/20 text-white"
+                    : "bg-gray-100 text-gray-500"
+                }`}
               >
                 {count}
               </span>
@@ -171,7 +175,7 @@ export default function UsersTable({ users }: Props) {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {/* Table Header */}
+              {/* Table Header – added two new columns */}
               <thead className="bg-gray-50">
                 <tr>
                   {[
@@ -180,6 +184,8 @@ export default function UsersTable({ users }: Props) {
                     "Phone",
                     "Address",
                     "Shop Name",
+                    "Area",          // 👈 NEW column
+                    "TR Code",        // 👈 NEW column
                     "Role",
                     "Status",
                     "Registered",
@@ -187,8 +193,9 @@ export default function UsersTable({ users }: Props) {
                   ].map((heading) => (
                     <th
                       key={heading}
-                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap ${heading === "Actions" ? "text-right" : "text-left"
-                        }`}
+                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap ${
+                        heading === "Actions" ? "text-right" : "text-left"
+                      }`}
                     >
                       {heading}
                     </th>
@@ -235,6 +242,24 @@ export default function UsersTable({ users }: Props) {
                       <div className="text-sm text-gray-700">
                         {user.shopName ?? (
                           <span className="text-gray-400 italic">N/A</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Area Name */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700">
+                        {user.area?.name ?? (
+                          <span className="text-gray-400 italic">Not set</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* TR Code */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700">
+                        {user.area?.trCode ?? (
+                          <span className="text-gray-400 italic">—</span>
                         )}
                       </div>
                     </td>
