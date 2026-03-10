@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+
+type City = { id: string; name: string; code: string };
+type Zone = { id: string; name: string; code: string };
+type Area = { id: string; name: string; code: string; trCode: string };
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,21 +20,100 @@ export default function RegisterPage() {
     address: "",
     shopName: "",
     role: "SHOP_OWNER",
+    cityId: "",
+    zoneId: "",
+    areaId: "",
   });
+
+  // Data states
+  const [cities, setCities] = useState<City[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingZones, setLoadingZones] = useState(false);
+  const [loadingAreas, setLoadingAreas] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch cities on mount
+  useEffect(() => {
+    const fetchCities = async () => {
+      setLoadingCities(true);
+      try {
+        const res = await fetch("/api/public/cities");
+        const data = await res.json();
+        setCities(data);
+      } catch {
+        toast.error("Failed to load cities");
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // Fetch zones when city changes
+  useEffect(() => {
+    if (!form.cityId) {
+      setZones([]);
+      setForm((prev) => ({ ...prev, zoneId: "", areaId: "" }));
+      return;
+    }
+    const fetchZones = async () => {
+      setLoadingZones(true);
+      setZones([]);
+      setForm((prev) => ({ ...prev, zoneId: "", areaId: "" }));
+      try {
+        const res = await fetch(`/api/public/zones?cityId=${form.cityId}`);
+        const data = await res.json();
+        setZones(data);
+      } catch {
+        toast.error("Failed to load zones");
+      } finally {
+        setLoadingZones(false);
+      }
+    };
+    fetchZones();
+  }, [form.cityId]);
+
+  // Fetch areas when zone changes
+  useEffect(() => {
+    if (!form.zoneId) {
+      setAreas([]);
+      setForm((prev) => ({ ...prev, areaId: "" }));
+      return;
+    }
+    const fetchAreas = async () => {
+      setLoadingAreas(true);
+      setAreas([]);
+      setForm((prev) => ({ ...prev, areaId: "" }));
+      try {
+        const res = await fetch(`/api/public/areas?zoneId=${form.zoneId}`);
+        const data = await res.json();
+        setAreas(data);
+      } catch {
+        toast.error("Failed to load areas");
+      } finally {
+        setLoadingAreas(false);
+      }
+    };
+    fetchAreas();
+  }, [form.zoneId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!form.areaId) {
+      toast.error("Please select an area");
+      return;
+    }
 
+    setIsLoading(true);
     const toastId = toast.loading("Creating account...");
 
     try {
       const res = await fetch("/api/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
@@ -51,7 +134,9 @@ export default function RegisterPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -63,12 +148,9 @@ export default function RegisterPage() {
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-2xl"
       >
-        {/* Decorative top border */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#156A98] via-[#0F9D8F] to-[#156A98] rounded-t-xl" />
 
-        {/* Main card */}
         <div className="bg-white rounded-xl shadow-2xl p-8 pt-10">
-          {/* Logo / Brand */}
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0.9 }}
@@ -77,9 +159,7 @@ export default function RegisterPage() {
               className="inline-flex items-center gap-2"
             >
               <div className="w-11 h-11 flex items-center justify-center">
-                <div>
-                  <img src="/Logo.png" alt="" />
-                </div>
+                <img src="/Logo.png" alt="" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent">
                 Medi Murt
@@ -93,7 +173,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Name */}
@@ -101,22 +180,16 @@ export default function RegisterPage() {
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                   Full Name
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
               </div>
 
               {/* Email */}
@@ -124,22 +197,16 @@ export default function RegisterPage() {
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email Address
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="you@company.com"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@company.com"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
               </div>
 
               {/* Phone */}
@@ -147,22 +214,16 @@ export default function RegisterPage() {
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                   Phone Number
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="+1234567890"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="+1234567890"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
               </div>
 
               {/* Password */}
@@ -170,22 +231,16 @@ export default function RegisterPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
               </div>
 
               {/* Shop Name */}
@@ -193,49 +248,109 @@ export default function RegisterPage() {
                 <label htmlFor="shopName" className="block text-sm font-medium text-gray-700">
                   Shop Name
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <input
-                    id="shopName"
-                    name="shopName"
-                    type="text"
-                    value={form.shopName}
-                    onChange={handleChange}
-                    placeholder="Medi Mart"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                <input
+                  id="shopName"
+                  name="shopName"
+                  type="text"
+                  value={form.shopName}
+                  onChange={handleChange}
+                  placeholder="Medi Mart"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
               </div>
 
-              {/* Address (full width on mobile, spans both columns on md) */}
+              {/* Address */}
               <div className="space-y-2 md:col-span-2">
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700">
                   Shop Address
                 </label>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 }}
+                <input
+                  id="address"
+                  name="address"
+                  type="text"
+                  value={form.address}
+                  onChange={handleChange}
+                  placeholder="123 Business St, City, State"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                />
+              </div>
+
+              {/* City Dropdown */}
+              <div className="space-y-2">
+                <label htmlFor="cityId" className="block text-sm font-medium text-gray-700">
+                  City
+                </label>
+                <select
+                  id="cityId"
+                  name="cityId"
+                  value={form.cityId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                  disabled={loadingCities}
                 >
-                  <input
-                    id="address"
-                    name="address"
-                    type="text"
-                    value={form.address}
-                    onChange={handleChange}
-                    placeholder="123 Business St, City, State"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
-                    required
-                  />
-                </motion.div>
+                  <option value="">Select a city</option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.id}>
+                      {city.name} ({city.code})
+                    </option>
+                  ))}
+                </select>
+                {loadingCities && <p className="text-xs text-gray-500">Loading cities...</p>}
+              </div>
+
+              {/* Zone Dropdown */}
+              <div className="space-y-2">
+                <label htmlFor="zoneId" className="block text-sm font-medium text-gray-700">
+                  Zone
+                </label>
+                <select
+                  id="zoneId"
+                  name="zoneId"
+                  value={form.zoneId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                  disabled={!form.cityId || loadingZones}
+                >
+                  <option value="">Select a zone</option>
+                  {zones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.code})
+                    </option>
+                  ))}
+                </select>
+                {loadingZones && <p className="text-xs text-gray-500">Loading zones...</p>}
+              </div>
+
+              {/* Area Dropdown */}
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="areaId" className="block text-sm font-medium text-gray-700">
+                  Area
+                </label>
+                <select
+                  id="areaId"
+                  name="areaId"
+                  value={form.areaId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F9D8F]/50 focus:border-[#0F9D8F] transition-all duration-200 text-black"
+                  required
+                  disabled={!form.zoneId || loadingAreas}
+                >
+                  <option value="">Select an area</option>
+                  {areas.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name} ({area.code}) - {area.trCode}
+                    </option>
+                  ))}
+                </select>
+                {loadingAreas && <p className="text-xs text-gray-500">Loading areas...</p>}
               </div>
             </div>
 
-            {/* Hidden role field - keeping as hidden input */}
+            {/* Hidden role */}
             <input type="hidden" name="role" value={form.role} />
 
             <motion.button
@@ -280,7 +395,7 @@ export default function RegisterPage() {
             </motion.button>
           </form>
 
-          {/* Extra registration options */}
+          {/* Other registration options */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -297,29 +412,22 @@ export default function RegisterPage() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Supplier Link */}
               <Link
                 href="/register/supplier"
                 className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-4 hover:border-[#0F9D8F] hover:shadow-md transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#156A98]/5 to-[#0F9D8F]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10 flex flex-col items-center text-center">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Become a Supplier</h3>
-                  </div>
+                  <h3 className="font-semibold text-gray-800">Become a Supplier</h3>
                 </div>
               </Link>
-
-              {/* Delivery Boy Link */}
               <Link
                 href="/register/deliveryBoy"
                 className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-4 hover:border-[#0F9D8F] hover:shadow-md transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#156A98]/5 to-[#0F9D8F]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10 flex flex-col items-center text-center">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Become a Delivery Boy</h3>
-                  </div>
+                  <h3 className="font-semibold text-gray-800">Become a Delivery Boy</h3>
                 </div>
               </Link>
             </div>
@@ -345,7 +453,6 @@ export default function RegisterPage() {
           </motion.div>
         </div>
 
-        {/* Decorative background blurs */}
         <div className="absolute -z-10 top-0 left-0 w-72 h-72 bg-[#156A98]/10 rounded-full blur-3xl" />
         <div className="absolute -z-10 bottom-0 right-0 w-72 h-72 bg-[#0F9D8F]/10 rounded-full blur-3xl" />
       </motion.div>
