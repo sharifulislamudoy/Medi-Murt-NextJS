@@ -17,7 +17,7 @@ type User = {
   area: {
     name: string;
     trCode: string;
-  } | null; // area may be null if not set
+  } | null;
 };
 
 type Props = {
@@ -183,12 +183,10 @@ export default function UsersTable({ users }: Props) {
                     "Email",
                     "Phone",
                     "Address",
-                    "Shop Name",
-                    "Area",          // 👈 NEW column
-                    "TR Code",        // 👈 NEW column
+                    "Shop Name",       
+                    "TR Code",        
                     "Role",
                     "Status",
-                    "Registered",
                     "Actions",
                   ].map((heading) => (
                     <th
@@ -246,15 +244,6 @@ export default function UsersTable({ users }: Props) {
                       </div>
                     </td>
 
-                    {/* Area Name */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {user.area?.name ?? (
-                          <span className="text-gray-400 italic">Not set</span>
-                        )}
-                      </div>
-                    </td>
-
                     {/* TR Code */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-700">
@@ -282,16 +271,6 @@ export default function UsersTable({ users }: Props) {
                       </span>
                     </td>
 
-                    {/* Registered Date */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(user.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </div>
-                    </td>
 
                     {/* Action Button */}
                     <td className="px-6 py-4 whitespace-nowrap text-right">
