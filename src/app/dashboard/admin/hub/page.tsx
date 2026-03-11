@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { toast } from "react-hot-toast";
 import CityTable from "@/components/admin/delivery/CityTable";
 import ZoneTable from "@/components/admin/delivery/ZoneTable";
 import AreaTable from "@/components/admin/delivery/AreaTable";

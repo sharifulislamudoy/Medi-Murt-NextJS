@@ -58,7 +58,51 @@ export default function AreaTable({ onEdit, onRefresh }: Props) {
     }
   };
 
-  if (loading) return <div className="text-center py-4">Loading...</div>;
+  const skeletonRows = Array.from({ length: 5 }).map((_, index) => (
+    <tr key={`skeleton-${index}`} className="animate-pulse">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-16"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right">
+        <div className="flex justify-end space-x-3">
+          <div className="h-4 w-4 bg-gray-200 rounded"></div>
+          <div className="h-4 w-4 bg-gray-200 rounded"></div>
+        </div>
+      </td>
+    </tr>
+  ));
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area Code</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TR Code</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">{skeletonRows}</tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
