@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// GET all delivery codes
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "ADMIN") {
@@ -20,6 +19,9 @@ export async function GET() {
               include: { city: true },
             },
           },
+        },
+        users: {  // 👈 include assigned delivery boys
+          select: { id: true, name: true },
         },
       },
     });

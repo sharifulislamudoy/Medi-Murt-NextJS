@@ -5,14 +5,12 @@ import { redirect } from "next/navigation";
 import UsersTable from "@/components/UsersTable";
 
 export default async function AdminUsersPage() {
-  // 🔒 Check if user is logged in
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/login");
   }
 
-  // 🔒 Only admin can access this page
   if (session.user.role !== "ADMIN") {
     return (
       <div className="text-center py-12">
@@ -22,7 +20,6 @@ export default async function AdminUsersPage() {
     );
   }
 
-  // 📦 Fetch ALL users from the database, including their area details
   const users = await prisma.user.findMany({
     select: {
       id: true,
@@ -33,32 +30,36 @@ export default async function AdminUsersPage() {
       shopName: true,
       role: true,
       status: true,
+      vehicle: true, // include vehicle
       createdAt: true,
-      // 👇 NEW: include the area relation to get name and trCode
       area: {
         select: {
           name: true,
           trCode: true,
         },
       },
+      deliveryCode: {   // 👈 NEW: include assigned delivery code
+        select: {
+          id: true,
+          code: true,
+        },
+      },
     },
-    orderBy: { createdAt: "desc" }, // newest first
+    orderBy: { createdAt: "desc" },
   });
 
   return (
     <div>
-      {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-        <p className="text-gray-500 mt-1">
-          View and manage all registered users
-        </p>
+        <p className="text-gray-500 mt-1">View and manage all registered users</p>
       </div>
       <UsersTable
         users={users.map((u) => ({
           ...u,
-          createdAt: u.createdAt.toISOString(), // convert Date → string
-          area: u.area, // keep the area object
+          createdAt: u.createdAt.toISOString(),
+          area: u.area,
+          deliveryCode: u.deliveryCode,
         }))}
       />
     </div>

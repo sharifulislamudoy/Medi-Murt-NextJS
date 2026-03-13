@@ -3,13 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import Modal from "@/components/ui/Modal"; // Reuse your existing modal
+import Modal from "@/components/ui/Modal";
+import AssignDeliveryCodeModal from "@/components/AssignDeliveryCodeModal"; // new component
 
 type UserStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+type UserRole = "ADMIN" | "SHOP_OWNER" | "DELIVERY_BOY" | "SUPPLIER";
 
 type Props = {
   userId: string;
   currentStatus: UserStatus;
+  userRole: UserRole;
+  currentDeliveryCodeId?: string | null; // only for delivery boys
 };
 
 const ALLOWED_TRANSITIONS: Record<UserStatus, UserStatus[]> = {
@@ -33,11 +37,17 @@ const ACTION_ICONS: Record<UserStatus, string> = {
   PENDING: "⏳",
 };
 
-export default function StatusActionButton({ userId, currentStatus }: Props) {
+export default function StatusActionButton({
+  userId,
+  currentStatus,
+  userRole,
+  currentDeliveryCodeId,
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<UserStatus | null>(null);
+  const [showAssignCode, setShowAssignCode] = useState(false); // for delivery boy approval
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -54,15 +64,26 @@ export default function StatusActionButton({ userId, currentStatus }: Props) {
   }, []);
 
   const handleActionClick = (newStatus: UserStatus) => {
+    // If we are approving a delivery boy, open the delivery code selection modal
+    if (userRole === "DELIVERY_BOY" && newStatus === "APPROVED") {
+      setPendingAction(newStatus);
+      setShowAssignCode(true);
+      setIsOpen(false);
+      return;
+    }
+
+    // Otherwise, go directly to confirmation
     setPendingAction(newStatus);
     setShowConfirm(true);
     setIsOpen(false);
   };
 
-  const confirmStatusChange = async () => {
+  const confirmStatusChange = async (deliveryCodeId?: string) => {
     if (!pendingAction) return;
+
     setIsLoading(true);
     setShowConfirm(false);
+    setShowAssignCode(false);
 
     const toastId = toast.loading(`Updating status to ${pendingAction.toLowerCase()}...`);
 
@@ -70,7 +91,11 @@ export default function StatusActionButton({ userId, currentStatus }: Props) {
       const res = await fetch("/api/admin/users/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, newStatus: pendingAction }),
+        body: JSON.stringify({
+          userId,
+          newStatus: pendingAction,
+          ...(deliveryCodeId && { deliveryCodeId }),
+        }),
       });
 
       const data = await res.json();
@@ -145,7 +170,7 @@ export default function StatusActionButton({ userId, currentStatus }: Props) {
         )}
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal (for non‑delivery‑boy approvals or other status changes) */}
       <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)}>
         <div className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4 text-left">Confirm Status Change</h3>
@@ -161,7 +186,7 @@ export default function StatusActionButton({ userId, currentStatus }: Props) {
               Cancel
             </button>
             <button
-              onClick={confirmStatusChange}
+              onClick={() => confirmStatusChange()}
               className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#156A98] to-[#0F9D8F] rounded-lg hover:opacity-90"
             >
               Confirm
@@ -169,6 +194,14 @@ export default function StatusActionButton({ userId, currentStatus }: Props) {
           </div>
         </div>
       </Modal>
+
+      {/* Delivery Code Assignment Modal (for approving delivery boys) */}
+      <AssignDeliveryCodeModal
+        isOpen={showAssignCode}
+        onClose={() => setShowAssignCode(false)}
+        onConfirm={confirmStatusChange}
+        currentDeliveryCodeId={currentDeliveryCodeId}
+      />
     </>
   );
 }

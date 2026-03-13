@@ -49,20 +49,22 @@ enum PaymentStatus {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  name      String
-  email     String     @unique
-  phone     String     @unique
-  password  String
-  address   String
-  shopName  String?
-  role      Role       @default(SHOP_OWNER)
-  status    UserStatus @default(PENDING)
-  createdAt DateTime   @default(now())
-  orders    Order[]
-  areaId    String?
-  area      Area?      @relation(fields: [areaId], references: [id])
-  vehicle   String?
+  id             String       @id @default(cuid())
+  name           String
+  email          String       @unique
+  phone          String       @unique
+  password       String
+  address        String
+  shopName       String?
+  role           Role         @default(SHOP_OWNER)
+  status         UserStatus   @default(PENDING)
+  createdAt      DateTime     @default(now())
+  orders         Order[]
+  areaId         String?
+  area           Area?        @relation(fields: [areaId], references: [id])
+  vehicle        String?
+  deliveryCodeId String?
+  deliveryCode   DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 }
 
 model Advertisement {
@@ -150,7 +152,7 @@ model Order {
   items            OrderItem[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  deliveryCodeId   String? // 👈 NEW
+  deliveryCodeId   String? 
   deliveryCode     DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 }
 
@@ -189,9 +191,10 @@ model Zone {
 
 model DeliveryCode {
   id        String   @id @default(cuid())
-  code      String   @unique // e.g. DC0001
+  code      String   @unique
   areas     Area[]
-  orders    Order[] // 👈 NEW opposite relation
+  orders    Order[]
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

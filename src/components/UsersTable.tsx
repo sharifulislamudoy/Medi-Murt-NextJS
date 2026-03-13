@@ -3,7 +3,6 @@
 import { useState } from "react";
 import StatusActionButton from "@/components/StatusActionButton";
 
-// Updated type – includes area and createdAt (already string)
 type User = {
   id: string;
   name: string;
@@ -13,47 +12,36 @@ type User = {
   shopName: string | null;
   role: "ADMIN" | "SHOP_OWNER" | "DELIVERY_BOY" | "SUPPLIER";
   status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
-  createdAt: string; // ISO string
-  area: {
-    name: string;
-    trCode: string;
-  } | null;
+  vehicle?: string | null; // 👈 added
+  createdAt: string;
+  area: { name: string; trCode: string } | null;
+  deliveryCode?: { id: string; code: string } | null; // 👈 added
 };
 
-type Props = {
-  users: User[];
-};
+type Props = { users: User[] };
 
-// Filter value type
 type FilterValue =
   | { type: "status"; value: User["status"] }
   | { type: "role"; value: User["role"] }
-  | null; // null = All
+  | null;
 
 type TabItem =
   | { label: string; filter: FilterValue; isSeparator?: false }
   | { isSeparator: true; label?: string; filter?: null };
 
-// Tab configuration
 const TABS: TabItem[] = [
   { label: "All", filter: null },
-
-  // Status tabs
   { label: "Approved", filter: { type: "status", value: "APPROVED" } },
   { label: "Pending", filter: { type: "status", value: "PENDING" } },
   { label: "Rejected", filter: { type: "status", value: "REJECTED" } },
   { label: "Suspended", filter: { type: "status", value: "SUSPENDED" } },
-
   { isSeparator: true },
-
-  // Role tabs
   { label: "Shop Owner", filter: { type: "role", value: "SHOP_OWNER" } },
   { label: "Delivery Boy", filter: { type: "role", value: "DELIVERY_BOY" } },
   { label: "Supplier", filter: { type: "role", value: "SUPPLIER" } },
   { label: "Admin", filter: { type: "role", value: "ADMIN" } },
 ];
 
-// Helper to format date
 const formatDate = (isoString: string) => {
   return new Date(isoString).toLocaleDateString("en-US", {
     year: "numeric",
@@ -67,7 +55,6 @@ const formatDate = (isoString: string) => {
 export default function UsersTable({ users }: Props) {
   const [currentFilter, setCurrentFilter] = useState<FilterValue>(null);
 
-  // Filter users
   const filteredUsers = users.filter((user) => {
     if (currentFilter === null) return true;
     if (currentFilter.type === "status") {
@@ -77,7 +64,6 @@ export default function UsersTable({ users }: Props) {
     }
   });
 
-  // Count helper for tabs
   const getCount = (filter: FilterValue) => {
     if (filter === null) return users.length;
     if (filter.type === "status") {
@@ -87,7 +73,6 @@ export default function UsersTable({ users }: Props) {
     }
   };
 
-  // Badge styles
   const statusBadge: Record<User["status"], string> = {
     APPROVED: "bg-green-100 text-green-800",
     PENDING: "bg-yellow-100 text-yellow-800",
@@ -102,7 +87,6 @@ export default function UsersTable({ users }: Props) {
     SUPPLIER: "bg-teal-100 text-teal-800",
   };
 
-  // ---------- Dynamic columns based on current filter ----------
   type Column = {
     key: string;
     header: string;
@@ -111,7 +95,6 @@ export default function UsersTable({ users }: Props) {
   };
 
   const getColumns = (filter: FilterValue): Column[] => {
-    // Base columns that appear in every view (order may vary)
     const nameCol: Column = {
       key: "name",
       header: "Name",
@@ -167,11 +150,15 @@ export default function UsersTable({ users }: Props) {
       header: "Actions",
       align: "right",
       render: (user) => (
-        <StatusActionButton userId={user.id} currentStatus={user.status} />
+        <StatusActionButton
+          userId={user.id}
+          currentStatus={user.status}
+          userRole={user.role}                // 👈 pass role
+          currentDeliveryCodeId={user.deliveryCode?.id} // 👈 pass current delivery code (if any)
+        />
       ),
     };
 
-    // Role‑specific columns
     const addressCol: Column = {
       key: "address",
       header: "Address",
@@ -199,17 +186,25 @@ export default function UsersTable({ users }: Props) {
         </div>
       ),
     };
+    const vehicleCol: Column = {
+      key: "vehicle",
+      header: "Vehicle",
+      render: (user) => (
+        <div className="text-sm text-gray-700">
+          {user.vehicle ?? <span className="text-gray-400 italic">—</span>}
+        </div>
+      ),
+    };
     const deliveryCodeCol: Column = {
       key: "deliveryCode",
       header: "Delivery Code",
       render: (user) => (
         <div className="text-sm text-gray-700">
-          {user.area?.trCode ?? <span className="text-gray-400 italic">—</span>}
+          {user.deliveryCode?.code ?? <span className="text-gray-400 italic">Not assigned</span>}
         </div>
       ),
     };
 
-    // If filter is null or a status filter → show common columns
     if (filter === null || filter.type === "status") {
       return [
         nameCol,
@@ -222,7 +217,6 @@ export default function UsersTable({ users }: Props) {
       ];
     }
 
-    // Filter is a role filter
     const role = filter.value;
     switch (role) {
       case "SHOP_OWNER":
@@ -243,7 +237,8 @@ export default function UsersTable({ users }: Props) {
           nameCol,
           emailCol,
           phoneCol,
-          deliveryCodeCol,
+          vehicleCol,           // 👈 added vehicle
+          deliveryCodeCol,      // 👈 added delivery code
           roleCol,
           statusCol,
           registeredCol,
@@ -259,7 +254,6 @@ export default function UsersTable({ users }: Props) {
           actionsCol,
         ];
       case "ADMIN":
-        // For admin, maybe show common columns (or a simplified view)
         return [
           nameCol,
           emailCol,
@@ -286,7 +280,7 @@ export default function UsersTable({ users }: Props) {
 
   return (
     <div>
-      {/* Tabs */}
+      {/* Tabs (same as before) */}
       <div className="flex gap-1 mb-6 bg-white rounded-xl shadow p-1 w-fit flex-wrap items-center">
         {TABS.map((tab, index) => {
           if (tab.isSeparator) {
@@ -332,7 +326,7 @@ export default function UsersTable({ users }: Props) {
         })}
       </div>
 
-      {/* Table or empty state */}
+      {/* Table */}
       {filteredUsers.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <svg
@@ -348,18 +342,13 @@ export default function UsersTable({ users }: Props) {
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <h3 className="mt-2 text-lg font-medium text-gray-900">
-            No users found
-          </h3>
-          <p className="mt-1 text-gray-500">
-            Try selecting a different filter.
-          </p>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">No users found</h3>
+          <p className="mt-1 text-gray-500">Try selecting a different filter.</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {/* Dynamic Header */}
               <thead className="bg-gray-50">
                 <tr>
                   {columns.map((col) => (
@@ -374,14 +363,9 @@ export default function UsersTable({ users }: Props) {
                   ))}
                 </tr>
               </thead>
-
-              {/* Dynamic Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     {columns.map((col) => (
                       <td
                         key={`${user.id}-${col.key}`}
@@ -397,8 +381,6 @@ export default function UsersTable({ users }: Props) {
               </tbody>
             </table>
           </div>
-
-          {/* Footer */}
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
             Showing {filteredUsers.length} of {users.length} users
           </div>

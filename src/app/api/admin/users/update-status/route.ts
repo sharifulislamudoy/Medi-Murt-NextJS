@@ -1,72 +1,76 @@
-// app/api/admin/update-status/route.ts
-
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// 📝 Define which transitions are allowed
-// Key = current status, Value = array of statuses you can change TO
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  PENDING: ["APPROVED", "REJECTED", "SUSPENDED"],
-  APPROVED: ["REJECTED", "SUSPENDED"],
-  REJECTED: ["APPROVED"],
-  SUSPENDED: ["APPROVED"],
-};
-
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { userId, newStatus, deliveryCodeId } = await req.json();
+
+  if (!userId || !newStatus) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  // Allowed transitions are already enforced on frontend, but double-check
+  const validStatuses = ["PENDING", "APPROVED", "REJECTED", "SUSPENDED"];
+  if (!validStatuses.includes(newStatus)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
   try {
-    // 🔒 Only admin can change user status
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { userId, newStatus } = await req.json();
-
-    // ✅ Basic validation — make sure both fields are present
-    if (!userId || !newStatus) {
-      return NextResponse.json(
-        { error: "userId and newStatus are required" },
-        { status: 400 }
-      );
-    }
-
-    // 🔍 Fetch the user's current status from DB
+    // Fetch the user to check role
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { status: true },
+      select: { role: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 🚦 Check if this transition is allowed
-    const allowedNext = ALLOWED_TRANSITIONS[user.status] ?? [];
-    if (!allowedNext.includes(newStatus)) {
+    // If approving a delivery boy, deliveryCodeId is required
+    if (user.role === "DELIVERY_BOY" && newStatus === "APPROVED" && !deliveryCodeId) {
       return NextResponse.json(
-        {
-          error: `Cannot change status from ${user.status} to ${newStatus}`,
-        },
+        { error: "Delivery code is required when approving a delivery boy" },
         { status: 400 }
       );
     }
 
-    // 💾 Update the user status in the database
-    await prisma.user.update({
+    // If deliveryCodeId is provided, verify it exists and is not already assigned
+    // (optional: allow reassigning? We'll just check existence for now)
+    if (deliveryCodeId) {
+      const deliveryCode = await prisma.deliveryCode.findUnique({
+        where: { id: deliveryCodeId },
+      });
+      if (!deliveryCode) {
+        return NextResponse.json(
+          { error: "Delivery code not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Update user status and optionally assign delivery code
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { status: newStatus },
+      data: {
+        status: newStatus,
+        ...(deliveryCodeId && { deliveryCodeId }),
+      },
     });
 
-    return NextResponse.json({
-      message: `User status updated to ${newStatus}`,
-    });
+    return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
-    console.error("Status update error:", error);
+    console.error(error);
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: "Failed to update user status" },
       { status: 500 }
     );
   }
