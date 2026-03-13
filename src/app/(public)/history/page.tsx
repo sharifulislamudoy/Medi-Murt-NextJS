@@ -303,15 +303,6 @@ export default function HistoryPage() {
                     <p><span className="font-semibold text-black">Payment:</span> <span className='text-gray-600'>{orderDetails.paymentMethod} ({orderDetails.paymentStatus})</span></p>
                   </div>
 
-                  {/* Customer info */}
-                  <div className="border-b pb-4 mb-4">
-                    <h3 className="font-semibold text-black text-lg mb-2">Customer Details</h3>
-                    <p><span className="font-medium text-black">Name:</span> <span className='text-gray-600'>{orderDetails.customerName}</span></p>
-                    {orderDetails.customerShopName && <p><span className="font-medium text-black">Shop:</span> <span className='text-gray-600'>{orderDetails.customerShopName}</span></p>}
-                    <p><span className="font-medium text-black">Address:</span> <span className='text-gray-600'>{orderDetails.customerAddress}</span></p>
-                    <p><span className="font-medium text-black">Phone:</span> <span className='text-gray-600'>{orderDetails.customerPhone}</span></p>
-                  </div>
-
                   {/* Items */}
                   <h3 className="font-semibold text-black text-lg mb-2">Items</h3>
                   <div className="space-y-3">
