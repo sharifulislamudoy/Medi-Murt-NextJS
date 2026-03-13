@@ -62,6 +62,7 @@ model User {
   orders    Order[]
   areaId    String?
   area      Area?      @relation(fields: [areaId], references: [id])
+  vehicle   String?
 }
 
 model Advertisement {

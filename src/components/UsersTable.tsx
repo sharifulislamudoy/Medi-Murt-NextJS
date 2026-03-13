@@ -3,7 +3,7 @@
 import { useState } from "react";
 import StatusActionButton from "@/components/StatusActionButton";
 
-// 👇 Updated type to include area (name & trCode)
+// Updated type – includes area and createdAt (already string)
 type User = {
   id: string;
   name: string;
@@ -13,7 +13,7 @@ type User = {
   shopName: string | null;
   role: "ADMIN" | "SHOP_OWNER" | "DELIVERY_BOY" | "SUPPLIER";
   status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
-  createdAt: string;
+  createdAt: string; // ISO string
   area: {
     name: string;
     trCode: string;
@@ -24,25 +24,17 @@ type Props = {
   users: User[];
 };
 
-// Define a union type for filter values
+// Filter value type
 type FilterValue =
   | { type: "status"; value: User["status"] }
   | { type: "role"; value: User["role"] }
-  | null; // null represents "All"
+  | null; // null = All
 
 type TabItem =
-  | {
-      label: string;
-      filter: FilterValue;
-      isSeparator?: false;
-    }
-  | {
-      isSeparator: true;
-      label?: string;
-      filter?: null;
-    };
+  | { label: string; filter: FilterValue; isSeparator?: false }
+  | { isSeparator: true; label?: string; filter?: null };
 
-// Tab configuration – each tab has a label and a corresponding filter value
+// Tab configuration
 const TABS: TabItem[] = [
   { label: "All", filter: null },
 
@@ -52,7 +44,6 @@ const TABS: TabItem[] = [
   { label: "Rejected", filter: { type: "status", value: "REJECTED" } },
   { label: "Suspended", filter: { type: "status", value: "SUSPENDED" } },
 
-  // Separator
   { isSeparator: true },
 
   // Role tabs
@@ -62,10 +53,21 @@ const TABS: TabItem[] = [
   { label: "Admin", filter: { type: "role", value: "ADMIN" } },
 ];
 
+// Helper to format date
+const formatDate = (isoString: string) => {
+  return new Date(isoString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export default function UsersTable({ users }: Props) {
   const [currentFilter, setCurrentFilter] = useState<FilterValue>(null);
 
-  // Filter users based on current filter
+  // Filter users
   const filteredUsers = users.filter((user) => {
     if (currentFilter === null) return true;
     if (currentFilter.type === "status") {
@@ -75,7 +77,7 @@ export default function UsersTable({ users }: Props) {
     }
   });
 
-  // Helper to get count for a tab
+  // Count helper for tabs
   const getCount = (filter: FilterValue) => {
     if (filter === null) return users.length;
     if (filter.type === "status") {
@@ -85,6 +87,7 @@ export default function UsersTable({ users }: Props) {
     }
   };
 
+  // Badge styles
   const statusBadge: Record<User["status"], string> = {
     APPROVED: "bg-green-100 text-green-800",
     PENDING: "bg-yellow-100 text-yellow-800",
@@ -99,12 +102,193 @@ export default function UsersTable({ users }: Props) {
     SUPPLIER: "bg-teal-100 text-teal-800",
   };
 
+  // ---------- Dynamic columns based on current filter ----------
+  type Column = {
+    key: string;
+    header: string;
+    render: (user: User) => React.ReactNode;
+    align?: "left" | "right";
+  };
+
+  const getColumns = (filter: FilterValue): Column[] => {
+    // Base columns that appear in every view (order may vary)
+    const nameCol: Column = {
+      key: "name",
+      header: "Name",
+      render: (user) => (
+        <div className="text-sm font-semibold text-gray-900">{user.name}</div>
+      ),
+    };
+    const emailCol: Column = {
+      key: "email",
+      header: "Email",
+      render: (user) => <div className="text-sm text-gray-700">{user.email}</div>,
+    };
+    const phoneCol: Column = {
+      key: "phone",
+      header: "Phone",
+      render: (user) => <div className="text-sm text-gray-700">{user.phone}</div>,
+    };
+    const roleCol: Column = {
+      key: "role",
+      header: "Role",
+      render: (user) => (
+        <span
+          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+            roleBadge[user.role]
+          }`}
+        >
+          {user.role.replace(/_/g, " ")}
+        </span>
+      ),
+    };
+    const statusCol: Column = {
+      key: "status",
+      header: "Status",
+      render: (user) => (
+        <span
+          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+            statusBadge[user.status]
+          }`}
+        >
+          {user.status}
+        </span>
+      ),
+    };
+    const registeredCol: Column = {
+      key: "registered",
+      header: "Registered",
+      render: (user) => (
+        <div className="text-sm text-gray-700">{formatDate(user.createdAt)}</div>
+      ),
+    };
+    const actionsCol: Column = {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (user) => (
+        <StatusActionButton userId={user.id} currentStatus={user.status} />
+      ),
+    };
+
+    // Role‑specific columns
+    const addressCol: Column = {
+      key: "address",
+      header: "Address",
+      render: (user) => (
+        <div className="text-sm text-gray-700 max-w-[160px] truncate" title={user.address}>
+          {user.address}
+        </div>
+      ),
+    };
+    const shopNameCol: Column = {
+      key: "shopName",
+      header: "Shop Name",
+      render: (user) => (
+        <div className="text-sm text-gray-700">
+          {user.shopName ?? <span className="text-gray-400 italic">N/A</span>}
+        </div>
+      ),
+    };
+    const trCodeCol: Column = {
+      key: "trCode",
+      header: "TR Code",
+      render: (user) => (
+        <div className="text-sm text-gray-700">
+          {user.area?.trCode ?? <span className="text-gray-400 italic">—</span>}
+        </div>
+      ),
+    };
+    const deliveryCodeCol: Column = {
+      key: "deliveryCode",
+      header: "Delivery Code",
+      render: (user) => (
+        <div className="text-sm text-gray-700">
+          {user.area?.trCode ?? <span className="text-gray-400 italic">—</span>}
+        </div>
+      ),
+    };
+
+    // If filter is null or a status filter → show common columns
+    if (filter === null || filter.type === "status") {
+      return [
+        nameCol,
+        emailCol,
+        phoneCol,
+        roleCol,
+        statusCol,
+        registeredCol,
+        actionsCol,
+      ];
+    }
+
+    // Filter is a role filter
+    const role = filter.value;
+    switch (role) {
+      case "SHOP_OWNER":
+        return [
+          nameCol,
+          emailCol,
+          phoneCol,
+          addressCol,
+          shopNameCol,
+          trCodeCol,
+          roleCol,
+          statusCol,
+          registeredCol,
+          actionsCol,
+        ];
+      case "DELIVERY_BOY":
+        return [
+          nameCol,
+          emailCol,
+          phoneCol,
+          deliveryCodeCol,
+          roleCol,
+          statusCol,
+          registeredCol,
+          actionsCol,
+        ];
+      case "SUPPLIER":
+        return [
+          nameCol,
+          emailCol,
+          phoneCol,
+          shopNameCol,
+          registeredCol,
+          actionsCol,
+        ];
+      case "ADMIN":
+        // For admin, maybe show common columns (or a simplified view)
+        return [
+          nameCol,
+          emailCol,
+          phoneCol,
+          roleCol,
+          statusCol,
+          registeredCol,
+          actionsCol,
+        ];
+      default:
+        return [
+          nameCol,
+          emailCol,
+          phoneCol,
+          roleCol,
+          statusCol,
+          registeredCol,
+          actionsCol,
+        ];
+    }
+  };
+
+  const columns = getColumns(currentFilter);
+
   return (
     <div>
-      {/* ===== COMBINED TABS (Status + Role) ===== */}
+      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-white rounded-xl shadow p-1 w-fit flex-wrap items-center">
         {TABS.map((tab, index) => {
-          // Special handling for separator
           if (tab.isSeparator) {
             return (
               <span
@@ -148,7 +332,7 @@ export default function UsersTable({ users }: Props) {
         })}
       </div>
 
-      {/* ===== TABLE or EMPTY STATE ===== */}
+      {/* Table or empty state */}
       {filteredUsers.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <svg
@@ -175,110 +359,39 @@ export default function UsersTable({ users }: Props) {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {/* Table Header – added two new columns */}
+              {/* Dynamic Header */}
               <thead className="bg-gray-50">
                 <tr>
-                  {[
-                    "Name",
-                    "Email",
-                    "Phone",
-                    "Address",
-                    "Shop Name",       
-                    "TR Code",        
-                    "Role",
-                    "Status",
-                    "Actions",
-                  ].map((heading) => (
+                  {columns.map((col) => (
                     <th
-                      key={heading}
+                      key={col.key}
                       className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap ${
-                        heading === "Actions" ? "text-right" : "text-left"
+                        col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {heading}
+                      {col.header}
                     </th>
                   ))}
                 </tr>
               </thead>
 
-              {/* Table Body */}
+              {/* Dynamic Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    {/* Name */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {user.name}
-                      </div>
-                    </td>
-
-                    {/* Email */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">{user.email}</div>
-                    </td>
-
-                    {/* Phone */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">{user.phone}</div>
-                    </td>
-
-                    {/* Address */}
-                    <td className="px-6 py-4">
-                      <div
-                        className="text-sm text-gray-700 max-w-[160px] truncate"
-                        title={user.address}
+                    {columns.map((col) => (
+                      <td
+                        key={`${user.id}-${col.key}`}
+                        className={`px-6 py-4 whitespace-nowrap ${
+                          col.align === "right" ? "text-right" : "text-left"
+                        }`}
                       >
-                        {user.address}
-                      </div>
-                    </td>
-
-                    {/* Shop Name */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {user.shopName ?? (
-                          <span className="text-gray-400 italic">N/A</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* TR Code */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {user.area?.trCode ?? (
-                          <span className="text-gray-400 italic">—</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Role Badge */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${roleBadge[user.role]}`}
-                      >
-                        {user.role.replace(/_/g, " ")}
-                      </span>
-                    </td>
-
-                    {/* Status Badge */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusBadge[user.status]}`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-
-
-                    {/* Action Button */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <StatusActionButton
-                        userId={user.id}
-                        currentStatus={user.status}
-                      />
-                    </td>
+                        {col.render(user)}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
