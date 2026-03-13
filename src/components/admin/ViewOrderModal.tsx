@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Modal from '@/components/ui/Modal';
 
@@ -28,6 +28,7 @@ interface Order {
   status: string;
   totalAmount: number;
   items: OrderItem[];
+  deliveryCode?: { code: string } | null; // 👈 new
 }
 
 interface Props {
@@ -62,6 +63,7 @@ export default function ViewOrderModal({ isOpen, onClose, order }: Props) {
         {/* Order Info */}
         <div className="border-b pb-4 mb-4">
           <p><span className="font-semibold text-black">Invoice:</span> <span className="text-gray-600">{order.invoiceNo}</span></p>
+          <p><span className="font-semibold text-black">Delivery Code:</span> <span className="text-gray-600">{order.deliveryCode?.code || '—'}</span></p>
           <p><span className="font-semibold text-black">Order Date:</span> <span className="text-gray-600">{new Date(order.orderDate).toLocaleString()}</span></p>
           <p><span className="font-semibold text-black">Delivery Date:</span> <span className="text-gray-600">{new Date(order.deliveryDate).toLocaleDateString()}</span></p>
           <p><span className="font-semibold text-black">Status:</span> 

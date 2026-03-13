@@ -16,16 +16,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 });
     }
 
-    // Fetch user details
+    // Fetch user details including area and delivery code
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, shopName: true, address: true, phone: true },
+      select: {
+        name: true,
+        shopName: true,
+        address: true,
+        phone: true,
+        area: {
+          include: {
+            deliveryCode: true, // get the delivery code
+          },
+        },
+      },
     });
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Fetch products with stock (still need product data for price)
+    // Fetch products with stock
     const productIds = items.map(i => i.id);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -34,22 +44,16 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(products.map(p => [p.id, p]));
 
-    // Validate that all products exist and are available (status/availability)
-    for (const item of items) {
-      const product = productMap.get(item.id);
-      if (!product) {
-        return NextResponse.json({ error: `Product ${item.id} not found` }, { status: 400 });
-      }
-      if (!product.status || !product.availability) {
-        return NextResponse.json({ error: `Product ${product.name} is not available` }, { status: 400 });
-      }
-      // ❌ STOCK CHECK REMOVED – order allowed even if insufficient stock
-    }
-
-    // Calculate total from products (use sellPrice)
+    // Validate products and calculate total
     let calculatedTotal = 0;
     const orderItemsData = items.map(item => {
-      const product = productMap.get(item.id)!;
+      const product = productMap.get(item.id);
+      if (!product) {
+        throw new Error(`Product ${item.id} not found`);
+      }
+      if (!product.status || !product.availability) {
+        throw new Error(`Product ${product.name} is not available`);
+      }
       const price = product.sellPrice;
       calculatedTotal += price * item.quantity;
       return {
@@ -59,7 +63,6 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // Verify totalPrice matches (allow small rounding difference)
     if (Math.abs(calculatedTotal - totalPrice) > 0.01) {
       return NextResponse.json({ error: 'Total price mismatch' }, { status: 400 });
     }
@@ -78,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
     const invoiceNo = nextInvoiceNumber.toString().padStart(4, '0');
 
-    // Compute delivery date
+    // Compute delivery date (unchanged)
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
@@ -91,7 +94,10 @@ export async function POST(req: NextRequest) {
     }
     deliveryDate.setHours(23, 59, 59, 999);
 
-    // Create order and items, update stock in a transaction
+    // Determine delivery code ID if available
+    const deliveryCodeId = user.area?.deliveryCode?.id || null;
+
+    // Create order and items, update stock
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -103,13 +109,14 @@ export async function POST(req: NextRequest) {
           deliveryDate,
           totalAmount: calculatedTotal,
           userId: session.user.id,
+          deliveryCodeId, // 👈 store the delivery code relation
           items: {
             create: orderItemsData,
           },
         },
       });
 
-      // Update stock for each product (allow negative)
+      // Update stock (allow negative)
       for (const item of items) {
         await tx.stock.update({
           where: { productId: item.id },
@@ -120,7 +127,16 @@ export async function POST(req: NextRequest) {
       return newOrder;
     });
 
-    return NextResponse.json({ orderId: order.id, invoiceNo: order.invoiceNo }, { status: 201 });
+    // Return order details including TR code and delivery code for the success modal
+    return NextResponse.json(
+      {
+        orderId: order.id,
+        invoiceNo: order.invoiceNo,
+        trCode: user.area?.trCode || null,
+        deliveryCode: user.area?.deliveryCode?.code || null,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Order creation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -59,21 +59,20 @@ model User {
   role      Role       @default(SHOP_OWNER)
   status    UserStatus @default(PENDING)
   createdAt DateTime   @default(now())
-  orders    Order[]    
-  areaId    String?    // 👈 NEW: link to the selected area
+  orders    Order[]
+  areaId    String?
   area      Area?      @relation(fields: [areaId], references: [id])
-  
 }
 
 model Advertisement {
-  id          String   @id @default(cuid())
-  title       String
-  imageUrl    String
-  category    String   // "ANNOUNCEMENT" | "PRODUCT"
-  hyperlink   String?
-  isVisible   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  imageUrl  String
+  category  String // "ANNOUNCEMENT" | "PRODUCT"
+  hyperlink String?
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PromotionModal {
@@ -87,40 +86,40 @@ model PromotionModal {
 }
 
 model Generic {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id        String    @id @default(cuid())
+  name      String    @unique
   products  Product[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Brand {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id        String    @id @default(cuid())
+  name      String    @unique
   products  Product[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Product {
-  id           String         @id @default(cuid())
+  id           String          @id @default(cuid())
   name         String
   category     ProductCategory
-  sku          String         @unique
+  sku          String          @unique
   mrp          Float
   genericId    String?
-  generic      Generic?       @relation(fields: [genericId], references: [id])
+  generic      Generic?        @relation(fields: [genericId], references: [id])
   brandId      String?
-  brand        Brand?         @relation(fields: [brandId], references: [id])
+  brand        Brand?          @relation(fields: [brandId], references: [id])
   image        String
-  description  String         @db.Text
+  description  String          @db.Text
   sellPrice    Float
   costPrice    Float
   profitMargin Float
-  status       Boolean        @default(true)
-  availability Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  stock        Stock?         
-  orderItems   OrderItem[]    
+  status       Boolean         @default(true)
+  availability Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  stock        Stock?
+  orderItems   OrderItem[]
 }
 
 model Stock {
@@ -150,6 +149,8 @@ model Order {
   items            OrderItem[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+  deliveryCodeId   String? // 👈 NEW
+  deliveryCode     DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 }
 
 model OrderItem {
@@ -159,14 +160,14 @@ model OrderItem {
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Float    
+  price     Float
   createdAt DateTime @default(now())
 }
 
 model City {
   id        String   @id @default(cuid())
   name      String
-  code      String   @unique 
+  code      String   @unique
   zones     Zone[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,23 +190,23 @@ model DeliveryCode {
   id        String   @id @default(cuid())
   code      String   @unique // e.g. DC0001
   areas     Area[]
+  orders    Order[] // 👈 NEW opposite relation
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Area {
-  id        String   @id @default(cuid())
-  name      String
-  code      String
-  zoneId    String
-  zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  trCode    String   @unique 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]   
+  id             String        @id @default(cuid())
+  name           String
+  code           String
+  zoneId         String
+  zone           Zone          @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  trCode         String        @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  users          User[]
   deliveryCodeId String?
   deliveryCode   DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 
   @@unique([zoneId, code])
 }
-

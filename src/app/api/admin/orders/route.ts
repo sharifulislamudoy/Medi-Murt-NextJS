@@ -25,6 +25,10 @@ export async function GET() {
             },
           },
         },
+        deliveryCode: {
+          // 👈 include delivery code
+          select: { code: true },
+        },
       },
     });
 
