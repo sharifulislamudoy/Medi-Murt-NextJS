@@ -49,7 +49,7 @@ export default function ViewOrderModal({ isOpen, onClose, order }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="w-full max-w-4xl mx-auto max-h-[80vh] overflow-y-auto p-2"
+        className="w-full max-w-4xl mx-auto max-h-[80vh] overflow-y-auto"
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Order Details</h2>
@@ -69,17 +69,6 @@ export default function ViewOrderModal({ isOpen, onClose, order }: Props) {
               <p><span className="font-semibold text-black">Delivery Code:</span> <span className="text-gray-600">{order.deliveryCode?.code || '—'}</span></p>
               <p><span className="font-semibold text-black">Order Date:</span> <span className="text-gray-600">{new Date(order.orderDate).toLocaleString()}</span></p>
               <p><span className="font-semibold text-black">Delivery Date:</span> <span className="text-gray-600">{new Date(order.deliveryDate).toLocaleDateString()}</span></p>
-              <p><span className="font-semibold text-black">Status:</span>
-                <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                  order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                  order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
-                  order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' :
-                  order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {order.status}
-                </span>
-              </p>
               <p><span className="font-semibold text-black">Payment:</span> <span className="text-gray-600">{order.paymentMethod} ({order.paymentStatus})</span></p>
             </div>
           </div>
@@ -92,6 +81,16 @@ export default function ViewOrderModal({ isOpen, onClose, order }: Props) {
               {order.customerShopName && <p><span className="font-semibold text-black">Shop:</span> <span className="text-gray-600">{order.customerShopName}</span></p>}
               <p><span className="font-semibold text-black">Address:</span> <span className="text-gray-600">{order.customerAddress}</span></p>
               <p><span className="font-semibold text-black">Phone:</span> <span className="text-gray-600">{order.customerPhone}</span></p>
+              <p><span className="font-semibold text-black">Status:</span>
+                <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                  }`}>
+                  {order.status}
+                </span>
+              </p>
             </div>
           </div>
         </div>
