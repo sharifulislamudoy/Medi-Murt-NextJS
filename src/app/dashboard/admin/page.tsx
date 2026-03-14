@@ -2,8 +2,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import ResetStoreButton from "@/components/admin/ResetStoreButton"; // we'll create this component
+import ResetStoreButton from "@/components/admin/ResetStoreButton";
 import SetCutoffTimeButton from "@/components/admin/SetCutoffTimeButton";
+import DispatchButton from "@/components/admin/DispatchButton"; // new component
 
 export default async function AdminDashboardHome() {
   const session = await getServerSession(authOptions);
@@ -16,16 +17,15 @@ export default async function AdminDashboardHome() {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-red-600">Unauthorized</h1>
-        <p className="text-gray-600 mt-2">
-          You do not have access to this page.
-        </p>
+        <p className="text-gray-600 mt-2">You do not have access to this page.</p>
       </div>
     );
   }
 
-  const [totalUsers, pendingUsers] = await Promise.all([
+  const [totalUsers, pendingUsers, processingOrders] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { status: "PENDING" } }),
+    prisma.order.count({ where: { status: "PROCESSING" } }),
   ]);
 
   return (
@@ -42,6 +42,7 @@ export default async function AdminDashboardHome() {
         <div className="flex gap-5">
           <ResetStoreButton />
           <SetCutoffTimeButton />
+          <DispatchButton processingCount={processingOrders} />
         </div>
       </div>
 
@@ -67,31 +68,31 @@ export default async function AdminDashboardHome() {
           }
           color="from-yellow-500 to-yellow-600"
         />
+        <StatCard
+          title="Processing Orders"
+          value={processingOrders}
+          icon={
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          }
+          color="from-purple-500 to-purple-600"
+        />
       </div>
 
       {/* Recent Activity Placeholder */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
         <div className="space-y-4">
-          <ActivityItem
-            message="New user registration pending approval"
-            time="5 minutes ago"
-          />
-          <ActivityItem
-            message="Order #1234 has been placed"
-            time="2 hours ago"
-          />
-          <ActivityItem
-            message="Product 'Paracetamol' stock updated"
-            time="1 day ago"
-          />
+          <ActivityItem message="New user registration pending approval" time="5 minutes ago" />
+          <ActivityItem message="Order #1234 has been placed" time="2 hours ago" />
+          <ActivityItem message="Product 'Paracetamol' stock updated" time="1 day ago" />
         </div>
       </div>
     </div>
   );
 }
 
-// Helper components (StatCard, ActivityItem) unchanged
 function StatCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
   return (
     <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
@@ -99,9 +100,7 @@ function StatCard({ title, value, icon, color }: { title: string; value: number;
         <p className="text-sm text-gray-500">{title}</p>
         <p className="text-2xl font-bold text-gray-800">{value}</p>
       </div>
-      <div className={`p-3 rounded-full bg-gradient-to-br ${color} text-white`}>
-        {icon}
-      </div>
+      <div className={`p-3 rounded-full bg-gradient-to-br ${color} text-white`}>{icon}</div>
     </div>
   );
 }
