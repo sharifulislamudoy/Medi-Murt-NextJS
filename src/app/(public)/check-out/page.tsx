@@ -13,9 +13,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, clearCart } = useCart();
   const { data: session, status } = useSession();
-  const [showModal, setShowModal] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // 👈 new
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderDetails, setOrderDetails] = useState<{
     invoiceNo: string;
     trCode: string | null;
@@ -28,10 +27,10 @@ export default function CheckoutPage() {
     return null;
   }
 
-  // Calculate discount (1% if subtotal > 4000)
-  const discount = totalPrice > 4000 ? totalPrice * 0.01 : 0;
-  const finalTotal = totalPrice - discount;
-  const payableTotal = Math.round(finalTotal);
+  // No discount applied
+  const discount = 0;
+  const finalTotal = totalPrice;
+  const payableTotal = Math.round(finalTotal); // optional rounding, can remove if not needed
 
   // Calculate delivery date based on current time
   const getDeliveryDate = (): string => {
@@ -61,11 +60,6 @@ export default function CheckoutPage() {
   const deliveryDate = getDeliveryDate();
 
   const handlePlaceOrder = async () => {
-    if (totalPrice < 500) {
-      setShowModal(true);
-      return;
-    }
-
     setIsPlacingOrder(true);
     try {
       const orderItems = items.map(item => ({
@@ -91,7 +85,7 @@ export default function CheckoutPage() {
         trCode: data.trCode,
         deliveryCode: data.deliveryCode,
       });
-      setShowSuccessModal(true); // 👈 show success modal
+      setShowSuccessModal(true);
     } catch (error: any) {
       toast.error(error.message || 'Something went wrong');
     } finally {
@@ -99,7 +93,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const closeModal = () => setShowModal(false);
   const closeSuccessModal = () => {
     setShowSuccessModal(false);
     router.push('/history');
@@ -136,12 +129,7 @@ export default function CheckoutPage() {
               <span className="text-gray-600">Subtotal</span>
               <span className="text-right font-medium text-gray-800">৳{totalPrice.toFixed(2)}</span>
             </div>
-            {discount > 0 && (
-              <div className="grid grid-cols-2 text-green-600">
-                <span>Discount (1%)</span>
-                <span className="text-right">- ৳{discount.toFixed(2)}</span>
-              </div>
-            )}
+            {/* Discount row removed */}
             <div className="grid grid-cols-2 font-semibold border-t border-gray-200 pt-2">
               <span>Total</span>
               <span className="text-right text-[#0F9D8F]">৳{payableTotal}</span>
@@ -207,12 +195,7 @@ export default function CheckoutPage() {
                 <span className="text-gray-600">Subtotal</span>
                 <span className="text-right font-medium text-gray-800">৳{totalPrice.toFixed(2)}</span>
               </div>
-              {discount > 0 && (
-                <div className="grid grid-cols-2 text-green-600">
-                  <span>Discount (1%)</span>
-                  <span className="text-right">- ৳{discount.toFixed(2)}</span>
-                </div>
-              )}
+              {/* Discount row removed */}
               <div className="grid grid-cols-2 font-semibold border-t border-gray-200 pt-2">
                 <span>Total</span>
                 <span className="text-right text-[#0F9D8F]">৳{finalTotal.toFixed(2)}</span>
@@ -241,65 +224,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
-      {/* Minimum Order Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-              onClick={closeModal}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6 z-50 max-w-md w-full"
-            >
-              <div className="text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                  <svg
-                    className="h-6 w-6 text-red-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">দুঃখিত</h3>
-                <p className="text-gray-600 mb-6">
-                  প্রথম অর্ডারের সর্বনিম্ন পরিমাণ ৫০০ টাকা।
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/products"
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] text-white rounded-lg hover:opacity-90 text-center"
-                    onClick={closeModal}
-                  >
-                    পণ্য দেখুন
-                  </Link>
-                  <Link
-                    href="/favourite"
-                    className="flex-1 px-4 py-2 border border-[#0F9D8F] text-[#0F9D8F] rounded-lg hover:bg-[#0F9D8F]/10 text-center"
-                    onClick={closeModal}
-                  >
-                    পছন্দের তালিকা
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Success Modal */}
       <AnimatePresence>
