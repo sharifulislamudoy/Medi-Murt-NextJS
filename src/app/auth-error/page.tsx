@@ -5,6 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
+export const dynamic = 'force-dynamic';
+
 export default function AuthErrorPage() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
