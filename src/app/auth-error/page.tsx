@@ -1,15 +1,23 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // optional, can be kept or removed
 
 export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthErrorContent />
+    </Suspense>
+  );
+}
+
+function AuthErrorContent() {
   const searchParams = useSearchParams();
-  const error = searchParams.get("error");
   const [copied, setCopied] = useState(false);
 
   // Messages in Bengali
@@ -17,6 +25,7 @@ export default function AuthErrorPage() {
   let message = "লগইন ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
   let supportMessage = "";
 
+  const error = searchParams.get("error");
   if (error === "ACCOUNT_NOT_APPROVED") {
     message = "আপনার অ্যাকাউন্ট Approved হয়নি। অনুগ্রহ করে নিচের নম্বরে কল করে সহায়তা নিন।";
     supportMessage = "সাহায্যের জন্য যোগাযোগ করুন:";
