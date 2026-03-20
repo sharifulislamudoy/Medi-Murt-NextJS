@@ -15,7 +15,7 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.38.0",
-    "groq-sdk": "^0.37.0",
+    "groq-sdk": "^1.1.1",
     "lodash": "^4.17.23",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.575.0",
