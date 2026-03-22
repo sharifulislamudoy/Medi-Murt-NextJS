@@ -210,6 +210,7 @@ export default function MarqueePage() {
         </div>
       </Modal>
 
+
       {/* Confirmation Modal for Toggle Visibility */}
       <Modal isOpen={!!confirmToggle} onClose={() => setConfirmToggle(null)}>
         <div className="p-6">
