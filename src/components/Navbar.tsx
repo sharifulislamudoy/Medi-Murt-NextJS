@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 // Import Lucide icons
 import {
@@ -24,6 +24,7 @@ import {
   Download,
   XCircle,
   Target,
+  CircleDollarSign,
 } from "lucide-react";
 
 // Simple product type for search results
@@ -35,6 +36,7 @@ interface SearchProduct {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname(); // for active route detection
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -59,6 +61,9 @@ export default function Navbar() {
 
   // 🔐 Get the current session (user login info)
   const { data: session, status } = useSession();
+  const userRole = session?.user?.role;
+  const isLoggedIn = !!session;
+  const isDeliveryBoy = userRole === "DELIVERY_BOY";
 
   const roleRouteMap: Record<string, string> = {
     ADMIN: "/dashboard/admin",
@@ -70,7 +75,7 @@ export default function Navbar() {
   const dashboardRoute =
     roleRouteMap[session?.user?.role as string] || "/dashboard";
 
-  // Navigation items for logged-in users
+  // Navigation items for logged-in users (used in avatar dropdown)
   const loggedInNavItems = [
     { name: "Products", href: "/products", icon: Package },
     { name: "Bag", href: "/bag", icon: ShoppingBag },
@@ -80,15 +85,54 @@ export default function Navbar() {
 
   const deliveryBoyNavItems = [
     { name: "Orders", href: "/orders", icon: ClipboardList },
-    { name: "Leaderboard", href: "/delivery-boy-leaderboard", icon: Target },
     { name: "Cash", href: "/cash", icon: Wallet },
+    { name: "Leaderboard", href: "/delivery-boy-leaderboard", icon: Target },
     { name: "History", href: "/delivery-boy-history", icon: History },
+    { name: "Earnings", href: "/earning", icon: CircleDollarSign },
   ];
 
-  const dropdownNavItems =
-    session?.user?.role === "DELIVERY_BOY"
-      ? deliveryBoyNavItems
-      : loggedInNavItems;
+  const dropdownNavItems = isDeliveryBoy ? deliveryBoyNavItems : loggedInNavItems;
+
+  // Desktop navigation links (visible on md+)
+  const desktopNavItems = [
+    { name: "Products", href: "/products", activeWhen: "/products" },
+    { name: "Services", href: "/services", activeWhen: "/services" },
+    { name: "About", href: "/about", activeWhen: "/about" },
+    { name: "Contact", href: "/contact", activeWhen: "/contact" },
+  ];
+
+  // Mobile hamburger menu items (conditionally rendered)
+  const getMobileMenuItems = () => {
+    // Not logged in: show all standard links
+    if (!isLoggedIn) {
+      return [
+        { name: "Home", href: "/", activeWhen: "/" },
+        { name: "Products", href: "/products", activeWhen: "/products" },
+        { name: "Services", href: "/services", activeWhen: "/services" },
+        { name: "About", href: "/about", activeWhen: "/about" },
+        { name: "Contact", href: "/contact", activeWhen: "/contact" },
+      ];
+    }
+    // Logged in: hide Home and Products (already in bottom nav)
+    // Also hide Products for delivery boy (they shouldn't see it at all)
+    const base = [
+      { name: "Services", href: "/services", activeWhen: "/services" },
+      { name: "About", href: "/about", activeWhen: "/about" },
+      { name: "Contact", href: "/contact", activeWhen: "/contact" },
+    ];
+    if (!isDeliveryBoy) {
+      // For non-delivery boy, we also exclude Products because it's in bottom nav
+      return base;
+    }
+    // For delivery boy, Products is not shown anywhere, so we keep the same base
+    return base;
+  };
+
+  // Helper to check if a link is active
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === "/";
+    return pathname.startsWith(path);
+  };
 
   // Fetch all products once on mount
   useEffect(() => {
@@ -280,11 +324,10 @@ export default function Navbar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          isScrolled
+        className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
             ? "bg-white/95 backdrop-blur-md shadow-lg"
             : "bg-white shadow-sm"
-        }`}
+          }`}
       >
         {/* Decorative top border gradient */}
         <div className="h-1 w-full bg-gradient-to-r from-[#156A98] via-[#0F9D8F] to-[#156A98]" />
@@ -336,24 +379,34 @@ export default function Navbar() {
             {/* Center: Desktop Navigation + Search (md+) */}
             <div className="hidden md:flex items-center flex-1 justify-center gap-4">
               <div className="flex items-center space-x-1">
-                {["Products", "Services", "About", "Contact"].map(
-                  (item, index) => (
+                {desktopNavItems.map((item, index) => {
+                  // Hide Products for delivery boy
+                  if (isDeliveryBoy && item.name === "Products") return null;
+                  return (
                     <motion.div
-                      key={item}
+                      key={item.name}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
                       <Link
-                        href={`/${item.toLowerCase().replace(/\s+/g, "")}`}
-                        className="relative group px-3 py-2 rounded-lg text-gray-700 font-medium hover:text-[#0F9D8F] transition-all duration-200"
+                        href={item.href}
+                        className={`relative group px-3 py-2 rounded-lg font-medium transition-all duration-200 ${isActive(item.activeWhen)
+                            ? "text-[#0F9D8F]"
+                            : "text-gray-700 hover:text-[#0F9D8F]"
+                          }`}
                       >
-                        <span>{item}</span>
-                        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                        <span>{item.name}</span>
+                        <span
+                          className={`absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-[#156A98] to-[#0F9D8F] transform transition-transform duration-300 origin-left ${isActive(item.activeWhen)
+                              ? "scale-x-100"
+                              : "scale-x-0 group-hover:scale-x-100"
+                            }`}
+                        />
                       </Link>
                     </motion.div>
-                  )
-                )}
+                  );
+                })}
               </div>
 
               <div className="relative max-w-xs w-full" ref={searchRef}>
@@ -425,7 +478,10 @@ export default function Navbar() {
                                 <Link
                                   key={item.name}
                                   href={item.href}
-                                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                                  className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-200 ${isActive(item.href)
+                                      ? "text-[#0F9D8F] bg-[#0F9D8F]/10"
+                                      : "text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F]"
+                                    }`}
                                   onClick={() => setIsDropdownOpen(false)}
                                 >
                                   <Icon className="h-4 w-4" />
@@ -435,7 +491,10 @@ export default function Navbar() {
                             })}
                             <Link
                               href={dashboardRoute}
-                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                              className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-200 ${isActive(dashboardRoute)
+                                  ? "text-[#0F9D8F] bg-[#0F9D8F]/10"
+                                  : "text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F]"
+                                }`}
                               onClick={() => setIsDropdownOpen(false)}
                             >
                               <User className="h-4 w-4" />
@@ -446,7 +505,10 @@ export default function Navbar() {
                           <>
                             <Link
                               href={dashboardRoute}
-                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F] transition-colors duration-200"
+                              className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-200 ${isActive(dashboardRoute)
+                                  ? "text-[#0F9D8F] bg-[#0F9D8F]/10"
+                                  : "text-gray-700 hover:bg-[#0F9D8F]/10 hover:text-[#0F9D8F]"
+                                }`}
                               onClick={() => setIsDropdownOpen(false)}
                             >
                               <User className="h-4 w-4" />
@@ -557,7 +619,7 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        {/* Mobile Menu (Hamburger) */}
+        {/* Mobile Menu (Hamburger) - Dynamic based on login state */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -568,24 +630,25 @@ export default function Navbar() {
               className="md:hidden overflow-hidden bg-white/95 backdrop-blur-md border-t border-gray-100"
             >
               <div className="px-4 py-4 space-y-2">
-                {["Home", "Products", "Services", "About", "Contact"].map(
-                  (item, index) => (
-                    <motion.div
-                      key={item}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: index * 0.1 }}
+                {getMobileMenuItems().map((item, index) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link
+                      href={item.href}
+                      className={`block font-medium transition py-2 px-3 rounded-lg ${isActive(item.activeWhen)
+                          ? "text-[#0F9D8F] bg-[#0F9D8F]/10"
+                          : "text-gray-700 hover:text-[#0F9D8F] hover:bg-[#0F9D8F]/5"
+                        }`}
+                      onClick={() => setIsMenuOpen(false)}
                     >
-                      <Link
-                        href={`/${item.toLowerCase().replace(/\s+/g, "")}`}
-                        className="block text-gray-700 font-medium hover:text-[#0F9D8F] transition py-2 px-3 rounded-lg hover:bg-[#0F9D8F]/5"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {item}
-                      </Link>
-                    </motion.div>
-                  )
-                )}
+                      {item.name}
+                    </Link>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
@@ -659,14 +722,17 @@ export default function Navbar() {
           className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 md:hidden"
         >
           <div className="flex justify-around items-center py-2">
-            {session.user.role === "DELIVERY_BOY" ? (
+            {isDeliveryBoy ? (
               deliveryBoyNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex flex-col items-center p-2 text-gray-600 hover:text-[#0F9D8F] transition-colors"
+                    className={`flex flex-col items-center p-2 transition-colors ${isActive(item.href)
+                        ? "text-[#0F9D8F]"
+                        : "text-gray-600 hover:text-[#0F9D8F]"
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     <span className="text-xs mt-1">{item.name}</span>
@@ -675,26 +741,56 @@ export default function Navbar() {
               })
             ) : (
               <>
+                {/* Home */}
                 <Link
                   href="/"
-                  className="flex flex-col items-center p-2 text-gray-600 hover:text-[#0F9D8F] transition-colors"
+                  className={`flex flex-col items-center p-2 transition-colors ${isActive("/") ? "text-[#0F9D8F]" : "text-gray-600 hover:text-[#0F9D8F]"
+                    }`}
                 >
                   <Home className="h-5 w-5" />
                   <span className="text-xs mt-1">Home</span>
                 </Link>
-                {loggedInNavItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="flex flex-col items-center p-2 text-gray-600 hover:text-[#0F9D8F] transition-colors"
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs mt-1">{item.name}</span>
-                    </Link>
-                  );
-                })}
+
+                {/* Products */}
+                <Link
+                  href="/products"
+                  className={`flex flex-col items-center p-2 transition-colors ${isActive("/products") ? "text-[#0F9D8F]" : "text-gray-600 hover:text-[#0F9D8F]"
+                    }`}
+                >
+                  <Package className="h-5 w-5" />
+                  <span className="text-xs mt-1">Products</span>
+                </Link>
+
+                {/* Special Bag Button - centered and prominent */}
+                <Link
+                  href="/bag"
+                  className="relative -mt-6 flex flex-col items-center"
+                >
+                  <div className="bg-gradient-to-r from-[#156A98] to-[#0F9D8F] p-3 rounded-full shadow-lg transform transition-all duration-300 hover:scale-110">
+                    <ShoppingBag className="h-7 w-7 text-white" />
+                  </div>
+                  <span className="text-xs mt-1 font-medium text-gray-700">Bag</span>
+                </Link>
+
+                {/* Favourite */}
+                <Link
+                  href="/favourite"
+                  className={`flex flex-col items-center p-2 transition-colors ${isActive("/favourite") ? "text-[#0F9D8F]" : "text-gray-600 hover:text-[#0F9D8F]"
+                    }`}
+                >
+                  <Heart className="h-5 w-5" />
+                  <span className="text-xs mt-1">Favourite</span>
+                </Link>
+
+                {/* History */}
+                <Link
+                  href="/history"
+                  className={`flex flex-col items-center p-2 transition-colors ${isActive("/history") ? "text-[#0F9D8F]" : "text-gray-600 hover:text-[#0F9D8F]"
+                    }`}
+                >
+                  <History className="h-5 w-5" />
+                  <span className="text-xs mt-1">History</span>
+                </Link>
               </>
             )}
           </div>
