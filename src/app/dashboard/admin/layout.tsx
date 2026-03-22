@@ -21,6 +21,7 @@ export default function AdminLayout({
     { name: "Delivery Route", href: "/dashboard/admin/delivery-route" },
     { name: "Shipment", href: "/dashboard/admin/delivery-shipment" },
     { name: "Announcement", href: "/dashboard/admin/marquee" },
+    { name: "Delivery Boys", href: "/dashboard/admin/delivery-boy" },
     
   ];
 
