@@ -66,7 +66,6 @@ model User {
   vehicle        String?
   deliveryCodeId String?
   deliveryCode   DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
-  pushToken      String?
 }
 
 model Advertisement {
