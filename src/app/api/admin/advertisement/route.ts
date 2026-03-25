@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendNotificationToAllUsers } from "@/lib/send-notification";
 
 // GET all advertisements (Admin only)
 export async function GET() {
@@ -45,13 +44,6 @@ export async function POST(req: Request) {
       isVisible,
     },
   });
-
-  // Send push notification to all users
-  await sendNotificationToAllUsers(
-    "New Advertisement",
-    `Check out: ${title}`,
-    { adId: ad.id, category } // optional data
-  );
 
   return NextResponse.json(ad);
 }
