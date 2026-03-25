@@ -4,7 +4,6 @@ import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import { Toaster } from "react-hot-toast";
 import CartProviderWrapper from "@/components/CartProviderWrapper";
 import InitialLoader from "@/components/InitialLoader";
-import NotificationHandler from "@/components/NotificationHandler";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.medimart.com'), // Replace with your domain
@@ -91,7 +90,6 @@ export default function RootLayout({
           <CartProviderWrapper>
             <InitialLoader>
               {children}
-              <NotificationHandler />
               <Toaster position="top-right" />
             </InitialLoader>
           </CartProviderWrapper>
