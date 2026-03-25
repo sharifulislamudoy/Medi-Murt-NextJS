@@ -60,16 +60,8 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
-  verification: {
-    google: 'your-google-search-console-verification-code',
-    // Add other verification codes if needed
-  },
   alternates: {
-    canonical: 'https://medi-murt-next-js-h55k.vercel.app',
-    languages: {
-      'en-US': 'https://medi-murt-next-js-h55k.vercel.app/en',
-      'bn-BD': 'https://medi-murt-next-js-h55k.vercel.app/bn', // If you have a Bengali version
-    },
+    canonical: '/',
   },
   category: 'Business',
 };
