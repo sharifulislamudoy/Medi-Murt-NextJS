@@ -782,6 +782,7 @@ export default function Navbar() {
                   <span className="text-xs mt-1">Favourite</span>
                 </Link>
 
+
                 {/* History */}
                 <Link
                   href="/history"
