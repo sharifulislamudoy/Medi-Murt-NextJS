@@ -111,7 +111,7 @@ export default function DeliveryBoyEarningPage() {
               <span className="font-medium text-gray-600">৳{data.baseSalary.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Per‑Delivery Bonus ({data.deliveryCount} × {data.vehicle === "bike" ? "10" : data.vehicle === "cycle" ? "5" : "0"})</span>
+              <span className="text-gray-600">Per‑Delivery Bonus ({data.deliveryCount} × {data.vehicle === "BIKE" ? "10" : data.vehicle === "CYCLE" ? "5" : "0"})</span>
               <span className="font-medium text-gray-600">৳{data.perDeliveryBonus.toFixed(2)}</span>
             </div>
             {data.thresholdBonus > 0 && (
