@@ -50,19 +50,19 @@ enum PaymentStatus {
 }
 
 model User {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   name           String
-  email          String       @unique
-  phone          String       @unique
+  email          String        @unique
+  phone          String        @unique
   password       String
   address        String
   shopName       String?
-  role           Role         @default(SHOP_OWNER)
-  status         UserStatus   @default(PENDING)
-  createdAt      DateTime     @default(now())
+  role           Role          @default(SHOP_OWNER)
+  status         UserStatus    @default(PENDING)
+  createdAt      DateTime      @default(now())
   orders         Order[]
   areaId         String?
-  area           Area?        @relation(fields: [areaId], references: [id])
+  area           Area?         @relation(fields: [areaId], references: [id])
   vehicle        String?
   deliveryCodeId String?
   deliveryCode   DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
@@ -112,26 +112,27 @@ model Brand {
 }
 
 model Product {
-  id           String          @id @default(cuid())
-  name         String
-  category     ProductCategory
-  sku          String          @unique
-  mrp          Float
-  genericId    String?
-  generic      Generic?        @relation(fields: [genericId], references: [id])
-  brandId      String?
-  brand        Brand?          @relation(fields: [brandId], references: [id])
-  image        String
-  description  String          @db.Text
-  sellPrice    Float
-  costPrice    Float
-  profitMargin Float
-  status       Boolean         @default(true)
-  availability Boolean         @default(true)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  stock        Stock?
-  orderItems   OrderItem[]
+  id               String            @id @default(cuid())
+  name             String
+  category         ProductCategory
+  sku              String            @unique
+  mrp              Float
+  genericId        String?
+  generic          Generic?          @relation(fields: [genericId], references: [id])
+  brandId          String?
+  brand            Brand?            @relation(fields: [brandId], references: [id])
+  image            String
+  description      String            @db.Text
+  sellPrice        Float
+  costPrice        Float
+  profitMargin     Float
+  status           Boolean           @default(true)
+  availability     Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  stock            Stock?
+  orderItems       OrderItem[]
+  procurementItems ProcurementItem[]
 }
 
 model Stock {
@@ -156,27 +157,27 @@ model Order {
   paymentStatus    PaymentStatus @default(DUE)
   status           OrderStatus   @default(PENDING)
   totalAmount      Float
-  originalTotal    Float?        // sum of items before discount (null if never processed by cutoff)
+  originalTotal    Float? // sum of items before discount (null if never processed by cutoff)
   discountAmount   Float         @default(0)
   userId           String
   user             User          @relation(fields: [userId], references: [id])
   items            OrderItem[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  deliveryCodeId   String? 
+  deliveryCodeId   String?
   deliveryCode     DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id])
+  quantity         Int
+  price            Float
   returnedQuantity Int      @default(0)
-  createdAt DateTime @default(now())
+  createdAt        DateTime @default(now())
 }
 
 model City {
@@ -225,4 +226,33 @@ model Area {
   deliveryCode   DeliveryCode? @relation(fields: [deliveryCodeId], references: [id])
 
   @@unique([zoneId, code])
+}
+
+model Procurement {
+  id        String            @id @default(cuid())
+  prNumber  String            @unique
+  createdAt DateTime          @default(now())
+  status    ProcurementStatus @default(PENDING)
+  items     ProcurementItem[]
+  updatedAt DateTime          @updatedAt
+}
+
+model ProcurementItem {
+  id              String      @id @default(cuid())
+  procurementId   String
+  procurement     Procurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product     @relation(fields: [productId], references: [id])
+  orderedQuantity Int
+  currentStock    Int // snapshot of stock at creation time
+  purchasePrice   Float // product.costPrice at creation time
+  mrp             Float // product.mrp at creation time
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum ProcurementStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

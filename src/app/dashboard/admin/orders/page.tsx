@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreVertical, Eye, Edit, Tag, Trash2, Info } from 'lucide-react';
+import { MoreVertical, Eye, Edit, Tag, Trash2, Info, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ViewOrderModal from '@/components/admin/ViewOrderModal';
 import EditOrderModal from '@/components/admin/EditOrderModal';
 import StatusModal from '@/components/admin/StatusModal';
 import DeleteOrderModal from '@/components/admin/DeleteOrderModal';
 import ReturnedItemsModal from '@/components/admin/ReturnedItemsModal';
-import CustomerOrdersModal from '@/components/admin/CustomerOrdersModal'; // new import
+import CustomerOrdersModal from '@/components/admin/CustomerOrdersModal';
 
 interface Order {
   id: string;
@@ -63,13 +63,11 @@ export default function AdminOrdersPage() {
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [returnedItems, setReturnedItems] = useState<any[]>([]);
   const [loadingReturns, setLoadingReturns] = useState(false);
-
-  // New state for customer orders modal
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
-
-  // Selection state
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [bulkActionOpen, setBulkActionOpen] = useState(false);
+  const [creatingProcurement, setCreatingProcurement] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -117,7 +115,6 @@ export default function AdminOrdersPage() {
     setSelectedOrders(new Set());
   }, [search, orders, statusFilter]);
 
-  // Selection handlers
   const toggleSelectAll = () => {
     if (selectedOrders.size === filtered.length) {
       setSelectedOrders(new Set());
@@ -197,6 +194,30 @@ export default function AdminOrdersPage() {
   const handleCustomerClick = (phone: string) => {
     setSelectedPhone(phone);
     setCustomerModalOpen(true);
+  };
+
+  const handleCreateProcurement = async () => {
+    if (selectedOrders.size === 0) {
+      toast.error('Please select at least one order');
+      return;
+    }
+    setCreatingProcurement(true);
+    try {
+      const res = await fetch('/api/admin/procurement/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: Array.from(selectedOrders) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      toast.success(`Procurement ${data.procurement.prNumber} created`);
+      setSelectedOrders(new Set());
+      setBulkActionOpen(false);
+    } catch (error) {
+      toast.error('Failed to create procurement');
+    } finally {
+      setCreatingProcurement(false);
+    }
   };
 
   const rowVariants = {
@@ -291,13 +312,47 @@ export default function AdminOrdersPage() {
             Cancelled
           </button>
         </div>
-        <input
-          type="text"
-          placeholder="Search by invoice, customer, phone, delivery code..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black w-100"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search by invoice, customer, phone, delivery code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#0F9D8F] focus:border-[#0F9D8F] outline-none text-black w-100"
+          />
+          <div className="relative">
+            <button
+              onClick={() => setBulkActionOpen(!bulkActionOpen)}
+              disabled={selectedOrders.size === 0}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1 ${
+                selectedOrders.size > 0
+                  ? 'bg-[#0F9D8F] text-white hover:bg-[#0c7d72]'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Bulk Actions ({selectedOrders.size})
+              <ChevronDown size={16} />
+            </button>
+            <AnimatePresence>
+              {bulkActionOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                >
+                  <button
+                    onClick={handleCreateProcurement}
+                    disabled={creatingProcurement}
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {creatingProcurement ? 'Creating...' : 'Create Procurement'}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow overflow-x-auto">
