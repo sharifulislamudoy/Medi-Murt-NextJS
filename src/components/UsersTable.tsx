@@ -12,10 +12,13 @@ type User = {
   shopName: string | null;
   role: "ADMIN" | "SHOP_OWNER" | "DELIVERY_BOY" | "SUPPLIER";
   status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
-  vehicle?: string | null; // 👈 added
+  vehicle?: string | null;
   createdAt: string;
   area: { name: string; trCode: string } | null;
-  deliveryCode?: { id: string; code: string } | null; // 👈 added
+  deliveryCode?: { id: string; code: string } | null;
+  bankAccountNumber?: string | null;
+  bankBranch?: string | null;
+  accountHolderName?: string | null;
 };
 
 type Props = { users: User[] };
@@ -153,8 +156,8 @@ export default function UsersTable({ users }: Props) {
         <StatusActionButton
           userId={user.id}
           currentStatus={user.status}
-          userRole={user.role}                // 👈 pass role
-          currentDeliveryCodeId={user.deliveryCode?.id} // 👈 pass current delivery code (if any)
+          userRole={user.role}
+          currentDeliveryCodeId={user.deliveryCode?.id}
         />
       ),
     };
@@ -205,6 +208,19 @@ export default function UsersTable({ users }: Props) {
       ),
     };
 
+    // New bank details column for suppliers
+    const bankDetailsCol: Column = {
+      key: "bankDetails",
+      header: "Bank Details",
+      render: (user) => (
+        <div className="text-xs text-gray-700 space-y-0.5">
+          <div><span className="font-medium">Account:</span> {user.bankAccountNumber || '—'}</div>
+          <div><span className="font-medium">Branch:</span> {user.bankBranch || '—'}</div>
+          <div><span className="font-medium">Holder:</span> {user.accountHolderName || '—'}</div>
+        </div>
+      ),
+    };
+
     if (filter === null || filter.type === "status") {
       return [
         nameCol,
@@ -237,8 +253,8 @@ export default function UsersTable({ users }: Props) {
           nameCol,
           emailCol,
           phoneCol,
-          vehicleCol,           // 👈 added vehicle
-          deliveryCodeCol,      // 👈 added delivery code
+          vehicleCol,
+          deliveryCodeCol,
           roleCol,
           statusCol,
           registeredCol,
@@ -250,6 +266,10 @@ export default function UsersTable({ users }: Props) {
           emailCol,
           phoneCol,
           shopNameCol,
+          addressCol,
+          bankDetailsCol,
+          roleCol,
+          statusCol,
           registeredCol,
           actionsCol,
         ];
@@ -280,7 +300,7 @@ export default function UsersTable({ users }: Props) {
 
   return (
     <div>
-      {/* Tabs (same as before) */}
+      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-white rounded-xl shadow p-1 w-fit flex-wrap items-center">
         {TABS.map((tab, index) => {
           if (tab.isSeparator) {

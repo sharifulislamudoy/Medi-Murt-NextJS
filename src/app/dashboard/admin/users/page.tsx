@@ -30,7 +30,7 @@ export default async function AdminUsersPage() {
       shopName: true,
       role: true,
       status: true,
-      vehicle: true, // include vehicle
+      vehicle: true,
       createdAt: true,
       area: {
         select: {
@@ -38,12 +38,16 @@ export default async function AdminUsersPage() {
           trCode: true,
         },
       },
-      deliveryCode: {   // 👈 NEW: include assigned delivery code
+      deliveryCode: {
         select: {
           id: true,
           code: true,
         },
       },
+      // New bank fields
+      bankAccountNumber: true,
+      bankBranch: true,
+      accountHolderName: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -60,6 +64,9 @@ export default async function AdminUsersPage() {
           createdAt: u.createdAt.toISOString(),
           area: u.area,
           deliveryCode: u.deliveryCode,
+          bankAccountNumber: u.bankAccountNumber,
+          bankBranch: u.bankBranch,
+          accountHolderName: u.accountHolderName,
         }))}
       />
     </div>
