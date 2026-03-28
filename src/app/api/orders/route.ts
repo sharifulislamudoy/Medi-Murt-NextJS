@@ -25,21 +25,19 @@ export async function POST(req: NextRequest) {
         address: true,
         phone: true,
         area: {
-          include: {
-            deliveryCode: true, // get the delivery code
-          },
+          include: { deliveryCode: true },
         },
       },
     });
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Fetch products with stock
+    // Fetch products with stock (optional, we'll handle stock via upsert)
     const productIds = items.map(i => i.id);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { stock: true },
     });
 
     const productMap = new Map(products.map(p => [p.id, p]));
@@ -94,10 +92,9 @@ export async function POST(req: NextRequest) {
     }
     deliveryDate.setHours(23, 59, 59, 999);
 
-    // Determine delivery code ID if available
     const deliveryCodeId = user.area?.deliveryCode?.id || null;
 
-    // Create order and items, update stock
+    // Create order and items, update stock using upsert
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -109,25 +106,30 @@ export async function POST(req: NextRequest) {
           deliveryDate,
           totalAmount: calculatedTotal,
           userId: session.user.id,
-          deliveryCodeId, // 👈 store the delivery code relation
+          deliveryCodeId,
           items: {
             create: orderItemsData,
           },
         },
       });
 
-      // Update stock (allow negative)
+      // Update stock – create if missing, then decrement
       for (const item of items) {
-        await tx.stock.update({
+        await tx.stock.upsert({
           where: { productId: item.id },
-          data: { quantity: { decrement: item.quantity } },
+          update: {
+            quantity: { decrement: item.quantity },
+          },
+          create: {
+            productId: item.id,
+            quantity: -item.quantity, // initial stock is 0, so after order it's negative
+          },
         });
       }
 
       return newOrder;
     });
 
-    // Return order details including TR code and delivery code for the success modal
     return NextResponse.json(
       {
         orderId: order.id,
@@ -137,8 +139,20 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Order creation error:', error);
+
+    // Return more specific error messages if possible
+    if (error.message?.startsWith('Product')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: 'Stock record not found for one or more products' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

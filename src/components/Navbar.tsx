@@ -357,7 +357,7 @@ export default function Navbar() {
                 <div className="relative">
                   <Image
                     src="/Logo.png"
-                    alt="Medi Murt Logo"
+                    alt="Medi Mart Logo"
                     width={120}
                     height={40}
                     className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
@@ -371,7 +371,7 @@ export default function Navbar() {
                   />
                 </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent hidden sm:inline">
-                  Medi Murt
+                  Medi Mart
                 </span>
               </Link>
             </div>

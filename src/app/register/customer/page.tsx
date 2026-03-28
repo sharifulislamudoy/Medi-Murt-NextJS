@@ -162,7 +162,7 @@ export default function RegisterPage() {
                 <img src="/Logo.png" alt="" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent">
-                Medi Murt
+                Medi Mart
               </span>
             </motion.div>
             <h2 className="text-2xl font-semibold text-gray-800 mt-4">

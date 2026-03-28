@@ -72,10 +72,10 @@ export default function DeliveryBoyRegisterPage() {
               className="inline-flex items-center gap-2"
             >
               <div className="w-11 h-11 flex items-center justify-center">
-                <img src="/Logo.png" alt="Medi Murt" />
+                <img src="/Logo.png" alt="Medi Mart" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-[#156A98] to-[#0F9D8F] bg-clip-text text-transparent">
-                Medi Murt
+                Medi Mart
               </span>
             </motion.div>
             <h2 className="text-2xl font-semibold text-gray-800 mt-4">
